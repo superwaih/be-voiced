@@ -1,0 +1,117 @@
+# Be Voiced
+
+A desktop app for finding the parts of long conversations worth publishing.
+
+Import a podcast, interview, webinar, meeting or X Space, transcribe it locally with whisper.cpp or in the cloud with Deepgram, let Be Voiced find the strongest moments, then trim, caption and export clips.
+
+```
+Import  ->  Transcribe  ->  Read and edit  ->  Find moments  ->  Trim  ->  Caption  ->  Export
+```
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| Shell | Tauri v2 (Rust) |
+| UI | React 19, TypeScript, Vite, zustand, Motion, Phosphor icons, Geist |
+| Media | FFmpeg and ffprobe sidecars |
+| Local transcription | whisper.cpp (`whisper-cli`) sidecar |
+| Cloud transcription | Deepgram `nova-3` (diarization, punctuation, word timings, confidence) |
+| Topics and signals | Deepgram Text Intelligence (`/v1/read`: topics, intents, sentiment), optional |
+| Moment finder | Local transcript analysis in `src/lib/moments.ts` |
+
+No LLM API is used. All processing runs through Rust commands. The webview never spawns processes and never sees the Deepgram key.
+
+## Getting started
+
+Prerequisites: Node 20+, pnpm, Rust (stable). Building whisper.cpp also needs git, CMake and a C++ toolchain (Visual Studio Build Tools on Windows, Xcode Command Line Tools on macOS).
+
+```bash
+pnpm install
+pnpm sidecars            # downloads FFmpeg/ffprobe and builds whisper-cli for this machine
+pnpm tauri dev
+```
+
+`pnpm sidecars` writes to `src-tauri/binaries/` using the target-triple names Tauri requires (for example `ffmpeg-x86_64-pc-windows-msvc.exe`). It can fetch one part at a time: `pnpm sidecars ffmpeg` or `pnpm sidecars whisper`. Downloads are cached in `src-tauri/target/sidecar-cache`.
+
+Tauri refuses to compile while any `externalBin` entry is missing, so there are variants for partial setups:
+
+| Command | Needs | Use when |
+| --- | --- | --- |
+| `pnpm tauri dev` | FFmpeg, ffprobe, whisper-cli | Everything is installed |
+| `pnpm app:dev:no-whisper` | FFmpeg, ffprobe | whisper.cpp is not built yet. Import, Deepgram transcription, moments and export all work |
+| `pnpm app:dev:ui` | nothing | Interface work only. Media features report the missing engine |
+
+In the running app, open **Settings** to:
+
+1. Download a Whisper model (fetched once from Hugging Face, then used offline).
+2. Optionally add a Deepgram key. It goes straight to the OS credential store (Windows Credential Manager or macOS Keychain). The UI can save, test or remove the key, never read it back.
+
+### Visual QA without the native shell
+
+`pnpm dev`, then open `http://localhost:1420/?qa` (add `&theme=dark` and `&open`). This loads a sample project through Tauri's official IPC mocks. It exists only in dev builds and is not part of the production bundle.
+
+## How it works
+
+**Import.** Drag a file onto the window or use the file picker. ffprobe reads duration, streams and rotation; FFmpeg grabs a thumbnail and decodes a waveform. Source media plays in place through Tauri's asset protocol, scoped to files you imported. If the webview cannot decode a container (common for MKV), the player offers a 720p H.264 preview copy; exports always use the original.
+
+**Transcription.** Both engines produce the same shape (`src-tauri/src/transcript.rs`): timed words grouped into speaker segments.
+- Local: FFmpeg extracts 16 kHz mono WAV, `whisper-cli` runs with full JSON output, tokens are merged into words with timings and probabilities. Whisper does not separate speakers; select text and use **Split turn**, then set the speaker from its label.
+- Cloud: FFmpeg encodes compact Opus audio (FLAC fallback), Rust streams it to Deepgram with upload progress.
+
+**Transcript.** Click any word to seek. The spoken word is highlighted during playback. Search across word boundaries, rename and reassign speakers, edit text inline. Edits keep exact timings for unchanged words and interpolate new ones. Select text to create a clip.
+
+**Moments.** `src/lib/moments.ts` asks: if someone could only watch a few minutes of this conversation, which moments would they choose? It scores every sentence-aligned window of roughly 30 to 90 seconds, so clips always start and end on sentence boundaries, on:
+- what is said: strong or contrarian opinions, explanations, advice, predictions, disagreements, stories, humour, statistics and quotable lines
+- structure: a question answered at length by another speaker, endings that land, one clear voice
+- delivery: speaking energy relative to the rest of the conversation
+- penalties: filler, housekeeping (sponsor reads, "subscribe"), intros and outros, low-confidence transcription
+
+With a Deepgram key, Deepgram Text Intelligence adds sentiment strength, intents and topic coherence to the score and names the topics. Without one, everything still runs on this computer, and topics come from distinctive phrases in each passage. Non-overlapping winners are kept only while they are close in quality to the best one. Each moment gets a title (its most quotable standalone sentence), range, speaker, topic, category, summary, a reason built from the signals that picked it, and a score. **Find more** skips existing clips and can favour words you type.
+
+**Editor.** Preview in the target frame (Original, 16:9, 1:1, 4:5, 9:16) with a horizontal framing control, a waveform trim timeline whose handles snap to word boundaries (hold Alt for free movement), sentence-level extend and shorten, undo and redo for every edit.
+
+**Captions.** One caption engine (`src/lib/captions.ts`) drives the live preview, SRT and VTT files, and the ASS document FFmpeg burns in, including per-word active highlighting. Three presets: Studio, Punch and Subtitle. Font, size, weight, case, colours, outline, shadow, background box, position and words per caption are all adjustable.
+
+**Export.** H.264/AAC MP4 at 720p or 1080p with real FFmpeg progress and cancel, plus SRT/VTT for a clip and TXT/SRT/VTT for the full transcript. Finished exports can be opened or revealed in Finder or File Explorer. Audio-only sources render captions over a dark frame.
+
+**Storage.** Projects live in the app data folder (`%APPDATA%\org.buildsystems.bevoiced\projects` on Windows, `~/Library/Application Support/org.buildsystems.bevoiced/projects` on macOS). Each project folder holds `project.json` (source, transcript, speakers, topics, clips, caption settings, export history), a small `meta.json` for library views (including waveform cover art), the thumbnail, waveform peaks and any preview copy. Edits autosave after a short pause and on window close; the last open project is restored at launch.
+
+## Packaging
+
+```bash
+pnpm app:build                   # Windows: NSIS + MSI. macOS: .app + .dmg for the host architecture
+pnpm app:build:mac-universal     # macOS universal .app/.dmg (builds both sidecar slices and lipos them)
+```
+
+For another target, run `pnpm sidecars --target <triple>` first, then `pnpm tauri build --target <triple>`. App icons are generated from `src-tauri/app-icon.svg` with `pnpm tauri icon src-tauri/app-icon.svg -o src-tauri/icons`.
+
+Signing is not configured:
+
+- **macOS**: set `bundle.macOS.signingIdentity` (or `APPLE_SIGNING_IDENTITY`) and notarization credentials. The sidecars must be signed with the same identity; `src-tauri/entitlements.plist` disables library validation until they are.
+- **Windows**: set `bundle.windows.certificateThumbprint` or a `signCommand` to avoid SmartScreen warnings.
+
+The bundled FFmpeg builds are GPL-licensed (they include libx264 and libass). Review the licensing implications before distributing.
+
+## Project layout
+
+```
+src/
+  App.tsx, main.tsx          shell, theme, drag and drop, session restore
+  lib/                       ipc, player controller, transcript, caption and moment engines, actions
+  store/                     app state (settings, jobs, library), project state (autosave, undo), waveform peaks
+  components/                UI primitives, waveform and cover art
+  views/                     Home, Projects, Transcripts, Clips, Settings, workspace/, editor/
+  styles/                    tokens.css (palette around #B7CEA5, light and dark) and component styles
+  dev/qa.ts                  dev-only visual QA harness
+src-tauri/src/
+  sidecar.rs                 resolve and run FFmpeg / ffprobe / whisper-cli with progress and cancel
+  media.rs                   probe, thumbnails, waveform peaks, preview copies
+  transcribe.rs, whisper.rs  Deepgram and whisper.cpp transcription
+  intelligence.rs            Deepgram Text Intelligence (topics, intents, sentiment)
+  transcript.rs              normalized transcript model
+  export.rs                  clip rendering, file open and reveal
+  projects.rs, settings.rs   local storage, keychain-backed API key
+  jobs.rs                    progress events and cancellation
+scripts/sidecars.mjs         fetch FFmpeg and build whisper.cpp per target
+```

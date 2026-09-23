@@ -1,0 +1,146 @@
+/*
+ * Be Voiced design tokens
+ *
+ * Primary: deep plum #320B35, used for primary actions, selection, active navigation, waveforms
+ * inside clips and active words. Backgrounds are true neutrals with no plum undertone, so the
+ * primary reads as a deliberate accent. Dark mode keeps the plum hue but lifts its lightness for
+ * anything interactive, so actions stay visible and edges stay crisp against near-black.
+ *
+ * Shape rule: interactive controls are pills (buttons, segmented controls, switches, chips);
+ * text inputs are 10px; panels, covers and popovers are 14px.
+ *
+ * Type: Manrope for everything, IBM Plex Mono for timecodes and numbers.
+ *
+ * Layers: --z-sticky 10, --z-popover 20, --z-modal 30, --z-toast 40.
+ */
+
+:root {
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+
+  --plum-50: #faf4fa;
+  --plum-100: #f3e6f3;
+  --plum-200: #e7cbe8;
+  --plum-300: #d4a6d6;
+  --plum-400: #b87abd;
+  --plum-500: #98559d;
+  --plum-600: #7a3d7f;
+  --plum-700: #5c2961;
+  --plum-800: #451a49;
+  --plum-900: #320b35;
+  --plum-950: #1e0620;
+
+  --radius-pill: 999px;
+  --radius-control: 10px;
+  --radius-panel: 14px;
+
+  --z-sticky: 10;
+  --z-popover: 20;
+  --z-modal: 30;
+  --z-toast: 40;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  --rail-w: 248px;
+  --rail-w-collapsed: 84px;
+  --header-h: 60px;
+
+  /* Light */
+  --rail-bg: #320b35;
+  --rail-text: rgba(247, 232, 248, 0.72);
+  --rail-text-active: #fdf6fd;
+  --rail-active: rgba(255, 255, 255, 0.1);
+  --rail-active-ring: rgba(255, 255, 255, 0.08);
+  --rail-line: rgba(255, 255, 255, 0.1);
+  --brand-strong: #f6e3f7;
+  --brand-soft: #c58fc9;
+
+  --bg: #f1eff2;
+  --surface: #fefefe;
+  --surface-raised: #fefefe;
+  --surface-sunken: #ebe8ec;
+  --surface-hover: #f4f2f5;
+  --accent-surface: #f5edf5;
+  --accent-surface-strong: #ecdcec;
+  /* Cover art (project and clip tiles) is a neutral graphite in both themes, like a thumbnail. */
+  --cover-bg: #1d1d21;
+  --cover-bg-2: #2a2a30;
+  --cover-bar: #e7cbe8;
+  --cover-bar-dim: rgba(231, 203, 232, 0.3);
+  --cover-ink: rgba(250, 250, 250, 0.92);
+  --cover-scrim: transparent;
+  --wave-hot: #7a3d7f;
+  --line: #e4e4e7;
+  --line-strong: #d0d0d6;
+  --text: #18181b;
+  --text-2: #4b4b52;
+  --text-3: #6b6b73;
+  --accent: #320b35;
+  --accent-hover: #4a1a4e;
+  --accent-ink: #fbf3fb;
+  --accent-text: #6a2f6f;
+  --accent-soft: rgba(122, 61, 127, 0.15);
+  --accent-softer: rgba(122, 61, 127, 0.07);
+  --accent-line: #98559d;
+  --danger: #b4372e;
+  --danger-soft: rgba(180, 55, 46, 0.09);
+  --focus: #7a3d7f;
+  --stage: #111113;
+  --stage-text: #f4f4f5;
+  --shadow-pop: 0 18px 40px -12px rgba(16, 16, 20, 0.24), 0 1px 3px rgba(16, 16, 20, 0.08);
+  --shadow-soft: 0 1px 2px rgba(16, 16, 20, 0.06);
+  --shadow-card: 0 1px 2px rgba(16, 16, 20, 0.05), 0 16px 34px -20px rgba(16, 16, 20, 0.3);
+  --scrim: transparent;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  /* Plain black everywhere; hairlines separate regions instead of lighter grey layers. */
+  --rail-bg: #000000;
+  --rail-text: #9a9aa3;
+  --rail-text-active: #f1d9f2;
+  --rail-active: #151517;
+  --rail-active-ring: rgba(255, 255, 255, 0.1);
+  --rail-line: #1f1f23;
+  --brand-strong: #f1d9f2;
+  --brand-soft: #b87abd;
+
+  --bg: #000000;
+  --surface: #000000;
+  --surface-raised: #000000;
+  --surface-sunken: #0c0c0e;
+  --surface-hover: #141417;
+  --accent-surface: #150b16;
+  --accent-surface-strong: #1f1120;
+  --cover-bg: #000000;
+  --cover-bg-2: #0c0c0e;
+  --cover-bar: #e7cbe8;
+  --cover-bar-dim: rgba(231, 203, 232, 0.34);
+  --cover-ink: #fafafa;
+  --cover-scrim: transparent;
+  --wave-hot: #d4a6d6;
+  --line: #1f1f23;
+  --line-strong: #33333a;
+  --text: #f6f6f7;
+  --text-2: #c4c4cb;
+  --text-3: #a0a0a9;
+  --accent: #8e4d94;
+  --accent-hover: #9f5ea5;
+  --accent-ink: #fff8ff;
+  --accent-text: #e6bfe9;
+  --accent-soft: rgba(212, 166, 214, 0.22);
+  --accent-softer: rgba(212, 166, 214, 0.11);
+  --accent-line: #b87abd;
+  --danger: #f59488;
+  --danger-soft: rgba(245, 148, 136, 0.13);
+  --focus: #d4a6d6;
+  --stage: #000000;
+  --stage-text: #f6f6f7;
+  --shadow-pop: 0 0 0 1px #2a2a30;
+  --shadow-soft: none;
+  --shadow-card: 0 0 0 1px #2a2a30;
+  --scrim: transparent;
+  color-scheme: dark;
+}

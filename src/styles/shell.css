@@ -1,0 +1,400 @@
+.boot {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  background: var(--bg);
+}
+
+/* The window is a primary-coloured frame; content sits on an inset sheet with rounded corners. */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  height: 100%;
+  background: var(--rail-bg);
+  transition: grid-template-columns 260ms var(--ease-out);
+}
+:root[data-sidebar="collapsed"] .shell {
+  grid-template-columns: var(--rail-w-collapsed) minmax(0, 1fr);
+}
+.shell-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 10px 10px 10px 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: 24px;
+}
+:root[data-theme="dark"] .shell-main {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Sidebar ---------------------------------------------------------------------------- */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 14px 16px;
+  min-width: 0;
+  min-height: 0;
+  color: var(--rail-text);
+  overflow: hidden;
+}
+.side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 22px;
+  min-height: 40px;
+}
+.side-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 0 6px;
+  color: var(--rail-text-active);
+}
+.side-wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}
+.side-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  color: var(--rail-text);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.side-toggle:hover {
+  background: var(--rail-active);
+  color: var(--rail-text-active);
+}
+.side-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+.side-group,
+.side-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.side-bottom {
+  margin-top: auto;
+}
+.side-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--rail-text);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+  transition: color var(--dur-fast) ease;
+}
+.side-item:hover,
+.side-item.is-active {
+  color: var(--rail-text-active);
+}
+.side-active {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--rail-active);
+  box-shadow: inset 0 0 0 1px var(--rail-active-ring);
+}
+.side-chip {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--rail-active);
+  transition: background-color var(--dur-fast) ease;
+}
+.side-item.is-active .side-chip {
+  background: var(--rail-text-active);
+  color: var(--rail-bg);
+}
+:root[data-theme="dark"] .side-item.is-active .side-chip {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.side-chip svg {
+  width: 17px;
+  height: 17px;
+}
+.side-label {
+  position: relative;
+  white-space: nowrap;
+}
+
+.side-project {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  margin: 8px 0 10px;
+  padding: 9px;
+  border-radius: 18px;
+  background: var(--rail-active);
+  box-shadow: inset 0 0 0 1px var(--rail-active-ring);
+  color: var(--rail-text-active);
+  text-align: left;
+  transition: box-shadow var(--dur-fast) ease;
+}
+.side-project:hover,
+.side-project.is-active {
+  box-shadow: inset 0 0 0 1.5px var(--brand-soft);
+}
+.side-project-cover {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+}
+.side-project-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.side-project-name {
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.side-project-meta {
+  font-size: 12px;
+  color: var(--rail-text);
+  white-space: nowrap;
+}
+
+/* Collapsed: icon chips only. */
+.side.is-collapsed {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.side.is-collapsed .side-top {
+  flex-direction: column;
+  gap: 14px;
+}
+.side.is-collapsed .side-wordmark,
+.side.is-collapsed .side-label,
+.side.is-collapsed .side-project-text {
+  display: none;
+}
+.side.is-collapsed .side-brand {
+  padding: 0;
+}
+.side.is-collapsed .side-item {
+  justify-content: center;
+  padding: 6px 0;
+}
+.side.is-collapsed .side-project {
+  justify-content: center;
+  padding: 6px;
+}
+
+/* ---- Background jobs -------------------------------------------------------------------- */
+.side-jobs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--rail-text-active);
+  font-weight: 600;
+  text-align: left;
+}
+.side-jobs:hover {
+  background: var(--rail-active);
+}
+.side-jobs-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  font-size: 11px;
+}
+.side-jobs-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.side-jobs-track {
+  fill: none;
+  stroke: var(--rail-line);
+  stroke-width: 2.5;
+}
+.side-jobs-fill {
+  fill: none;
+  stroke: var(--rail-text-active);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 300ms linear;
+}
+.side-jobs.is-indeterminate svg {
+  animation: spin 1.2s linear infinite;
+}
+.side-jobs-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+}
+.side-jobs-text .sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rail-text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.side.is-collapsed .side-jobs {
+  justify-content: center;
+  padding: 6px 0;
+}
+.side.is-collapsed .side-jobs-text {
+  display: none;
+}
+@keyframes spin {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+.job {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.job-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.job-text {
+  flex: 1;
+  min-width: 0;
+}
+.job-label {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.job-stage {
+  font-size: 12px;
+}
+
+/* ---- Drop overlay ----------------------------------------------------------------------- */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: fade-in var(--dur-fast) ease;
+}
+.drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 56px;
+  border-radius: 26px;
+  background: var(--rail-bg);
+  color: var(--rail-text-active);
+  box-shadow: var(--shadow-pop), inset 0 0 0 1.5px var(--brand-soft);
+}
+.drop-card strong {
+  font-size: 19px;
+}
+.drop-card .muted {
+  color: var(--rail-text);
+}
+.drop-card svg {
+  color: var(--brand-strong);
+  margin-bottom: 6px;
+}
+
+/* ---- Page scaffolding ------------------------------------------------------------------- */
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.page-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 34px 38px 60px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.page-sub {
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+.page-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* White rounded cards on the sheet; hairline-bordered black in dark mode. */
+.card {
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(30, 10, 32, 0.04);
+}
+:root[data-theme="dark"] .card {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
