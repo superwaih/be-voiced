@@ -13,7 +13,7 @@ Import  ->  Transcribe  ->  Read and edit  ->  Find moments  ->  Trim  ->  Capti
 | Layer | Choice |
 | --- | --- |
 | Shell | Tauri v2 (Rust) |
-| UI | React 19, TypeScript, Vite, zustand, Motion, Phosphor icons, Geist |
+| UI | React 19, TypeScript, Vite, zustand, Motion, Phosphor icons, Manrope and IBM Plex Mono |
 | Media | FFmpeg and ffprobe sidecars |
 | Local transcription | whisper.cpp (`whisper-cli`) sidecar |
 | Cloud transcription | Deepgram `nova-3` (diarization, punctuation, word timings, confidence) |
@@ -69,7 +69,7 @@ In the running app, open **Settings** to:
 
 With a Deepgram key, Deepgram Text Intelligence adds sentiment strength, intents and topic coherence to the score and names the topics. Without one, everything still runs on this computer, and topics come from distinctive phrases in each passage. Non-overlapping winners are kept only while they are close in quality to the best one. Each moment gets a title (its most quotable standalone sentence), range, speaker, topic, category, summary, a reason built from the signals that picked it, and a score. **Find more** skips existing clips and can favour words you type.
 
-**Editor.** Preview in the target frame (Original, 16:9, 1:1, 4:5, 9:16) with a horizontal framing control, a waveform trim timeline whose handles snap to word boundaries (hold Alt for free movement), sentence-level extend and shorten, undo and redo for every edit.
+**Editor.** One column for the work and one for the settings. The clip plays in its target frame (Original, 16:9, 1:1, 4:5, 9:16, chosen in the header) above a waveform trim timeline whose handles snap to word boundaries (hold Alt for free movement) and the clip's own words. The side column holds length (sentence-level extend and shorten, plus a framing control when the frame crops), why the moment was picked, and captions (three presets, with the full style controls behind **Customize style**). Export opens as a dialog: frame, length, resolution, captions, file name and folder, with progress, the finished file and subtitle side files. Undo and redo cover every edit.
 
 **Captions.** One caption engine (`src/lib/captions.ts`) drives the live preview, SRT and VTT files, and the ASS document FFmpeg burns in, including per-word active highlighting. Three presets: Studio, Punch and Subtitle. Font, size, weight, case, colours, outline, shadow, background box, position and words per caption are all adjustable.
 
@@ -85,6 +85,10 @@ pnpm app:build:mac-universal     # macOS universal .app/.dmg (builds both sideca
 ```
 
 For another target, run `pnpm sidecars --target <triple>` first, then `pnpm tauri build --target <triple>`. App icons are generated from `src-tauri/app-icon.svg` with `pnpm tauri icon src-tauri/app-icon.svg -o src-tauri/icons`.
+
+### Building for macOS from Windows
+
+You cannot. A `.app`/`.dmg` needs macOS tooling, and the sidecars must be macOS binaries (whisper.cpp is compiled from source per platform). Either build on a Mac, or push the repo and run the **Build installers** workflow in `.github/workflows/build.yml`, which produces a universal macOS bundle on `macos-14` and the Windows MSI/NSIS installers on `windows-latest` and uploads both as artifacts. Trigger it from the Actions tab or by pushing a `v*` tag.
 
 Signing is not configured:
 
@@ -102,7 +106,7 @@ src/
   store/                     app state (settings, jobs, library), project state (autosave, undo), waveform peaks
   components/                UI primitives, waveform and cover art
   views/                     Home, Projects, Transcripts, Clips, Settings, workspace/, editor/
-  styles/                    tokens.css (palette around #B7CEA5, light and dark) and component styles
+  styles/                    tokens.css (plum #320B35, light sheet and pure-black dark) and component styles
   dev/qa.ts                  dev-only visual QA harness
 src-tauri/src/
   sidecar.rs                 resolve and run FFmpeg / ffprobe / whisper-cli with progress and cancel

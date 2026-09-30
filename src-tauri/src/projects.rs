@@ -78,8 +78,11 @@ pub async fn list_projects(app: AppHandle) -> AppResult<Vec<Value>> {
 pub async fn delete_project(app: AppHandle, project_id: String) -> AppResult<()> {
     let dir = paths::project_dir(&app, &project_id)?;
     // Only the project folder in app data is removed. The user's source media is never touched.
-    tokio::fs::remove_dir_all(dir).await?;
-    Ok(())
+    match tokio::fs::remove_dir_all(dir).await {
+        // A project already gone is the state the caller asked for.
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        other => Ok(other?),
+    }
 }
 
 #[tauri::command]

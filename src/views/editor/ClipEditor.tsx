@@ -1,28 +1,25 @@
-import {
-  ArrowClockwise,
-  ArrowCounterClockwise,
-  ArrowLeft,
-  ArrowsInLineHorizontal,
-  Export,
-  Pause,
-  Play,
-  SkipBack,
-} from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInLineHorizontal, Export, Pause, Play, SkipBack } from "@phosphor-icons/react";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MediaElement, Waveform } from "../../components/media";
 import { Button, IconButton, InlineEdit, Segmented } from "../../components/ui";
-import { ensurePeaks, outputFrame, usePeaks } from "../../lib/actions";
+import { ensurePeaks, outputFrame } from "../../lib/actions";
 import { groupCaptions, previewVars, type CaptionGroup } from "../../lib/captions";
 import { clock } from "../../lib/format";
 import { player, usePlayerState, usePlayerTime } from "../../lib/player";
 import { flattenWords, snapToWord, wordsInRange, type FlatWord } from "../../lib/transcript";
-import type { CaptionStyle, Clip } from "../../lib/types";
+import type { AspectRatio, CaptionStyle, Clip } from "../../lib/types";
+import { usePeaks } from "../../store/peaks";
 import { useProject } from "../../store/project";
 import { openWorkspace } from "../ProjectView";
-import { CaptionsPanel, ClipPanel, ExportPanel } from "./EditorPanels";
+import { CaptionsPanel, ClipPanel, ClipTranscript, ExportDialog } from "./EditorPanels";
 
-type Tab = "clip" | "captions" | "export";
+const ASPECTS: { value: AspectRatio; label: string }[] = [
+  { value: "original", label: "Original" },
+  { value: "16:9", label: "16:9" },
+  { value: "1:1", label: "1:1" },
+  { value: "4:5", label: "4:5" },
+  { value: "9:16", label: "9:16" },
+];
 
 export function ClipEditor({ clipId }: { clipId: string }) {
   const project = useProject((s) => s.project)!;
@@ -30,8 +27,7 @@ export function ClipEditor({ clipId }: { clipId: string }) {
   const updateClip = useProject((s) => s.updateClip);
   const canUndo = useProject((s) => s.past.length > 0);
   const canRedo = useProject((s) => s.future.length > 0);
-  const saving = useProject((s) => s.saving);
-  const [tab, setTab] = useState<Tab>("clip");
+  const [exportOpen, setExportOpen] = useState(false);
 
   const words = useMemo(() => flattenWords(project.transcript), [project.transcript]);
   const clipWords = useMemo(() => wordsInRange(words, clip.start, clip.end), [words, clip.start, clip.end]);
@@ -50,25 +46,30 @@ export function ClipEditor({ clipId }: { clipId: string }) {
 
   return (
     <div className="editor">
-      <header className="ws-header">
-        <div className="ws-title">
-          <Button variant="ghost" size="sm" icon={<ArrowLeft />} onClick={openWorkspace}>
-            {project.name}
-          </Button>
-          <span className="faint" aria-hidden="true">
-            /
-          </span>
-          <InlineEdit label="Clip title" className="ws-name" value={clip.title} onCommit={(title) => updateClip(clip.id, { title })} />
+      <header className="editor-header">
+        <div className="editor-title">
+          <IconButton label={`Back to ${project.name}`} onClick={openWorkspace}>
+            <ArrowLeft />
+          </IconButton>
+          <InlineEdit label="Clip title" className="editor-name" value={clip.title} onCommit={(title) => updateClip(clip.id, { title })} />
         </div>
-        <div className="ws-actions">
-          <span className="save-state faint">{saving ? "Saving" : "Saved"}</span>
+
+        <Segmented<AspectRatio>
+          label="Frame"
+          size="sm"
+          value={clip.aspect}
+          onChange={(aspect) => updateClip(clip.id, { aspect })}
+          options={ASPECTS}
+        />
+
+        <div className="editor-actions">
           <IconButton label="Undo" disabled={!canUndo} onClick={() => useProject.getState().undo()}>
             <ArrowCounterClockwise />
           </IconButton>
           <IconButton label="Redo" disabled={!canRedo} onClick={() => useProject.getState().redo()}>
             <ArrowClockwise />
           </IconButton>
-          <Button variant="primary" icon={<Export />} onClick={() => setTab("export")}>
+          <Button variant="primary" icon={<Export />} onClick={() => setExportOpen(true)}>
             Export
           </Button>
         </div>
@@ -78,38 +79,15 @@ export function ClipEditor({ clipId }: { clipId: string }) {
         <div className="editor-main">
           <ClipStage clip={clip} clipWords={clipWords} />
           <EditorTransport clip={clip} />
-          <TrimTimeline clip={clip} words={words} />
+          <TrimTimeline clip={clip} words={words} clipWords={clipWords} />
         </div>
         <aside className="editor-side">
-          <div className="editor-tabs">
-            <Segmented<Tab>
-              label="Editor panel"
-              value={tab}
-              onChange={setTab}
-              options={[
-                { value: "clip", label: "Clip" },
-                { value: "captions", label: "Captions" },
-                { value: "export", label: "Export" },
-              ]}
-            />
-          </div>
-          <div className="editor-panel">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={tab}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {tab === "clip" && <ClipPanel clip={clip} clipWords={clipWords} />}
-                {tab === "captions" && <CaptionsPanel clip={clip} />}
-                {tab === "export" && <ExportPanel clip={clip} />}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <CaptionsPanel clip={clip} />
+          <ClipPanel clip={clip} />
         </aside>
       </div>
+
+      <ExportDialog clip={clip} open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
@@ -241,33 +219,22 @@ function EditorTransport({ clip }: { clip: Clip }) {
 
 // --- Trim timeline -------------------------------------------------------------------------------
 
-const TICK_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300];
-
 function windowFor(clip: Clip, total: number) {
   const len = clip.end - clip.start;
   const pad = Math.max(6, len * 0.35);
   return { start: Math.max(0, clip.start - pad), end: Math.min(total, clip.end + pad) };
 }
 
-function TrimTimeline({ clip, words }: { clip: Clip; words: FlatWord[] }) {
+function TrimTimeline({ clip, words, clipWords }: { clip: Clip; words: FlatWord[]; clipWords: FlatWord[] }) {
   const project = useProject((s) => s.project)!;
   const updateClip = useProject((s) => s.updateClip);
   const peaks = usePeaks((s) => s.byProject[project.id]);
   const total = project.source.duration;
   const [view, setView] = useState(() => windowFor(clip, total));
   const [dragging, setDragging] = useState<"start" | "end" | null>(null);
-  const [width, setWidth] = useState(800);
   const trackRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
   const span = view.end - view.start;
-
-  useLayoutEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.getBoundingClientRect().width));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   // Keep the clip in view when it changes from elsewhere (sentence nudges, undo).
   useEffect(() => {
@@ -302,89 +269,62 @@ function TrimTimeline({ clip, words }: { clip: Clip; words: FlatWord[] }) {
   };
 
   const trimRange = useMemo(() => [{ start: clip.start, end: clip.end }], [clip.start, clip.end]);
-  const pxPerSec = width / span;
-  const step = TICK_STEPS.find((s) => s * pxPerSec >= 72) ?? 600;
-  const ticks: number[] = [];
-  for (let t = Math.ceil(view.start / step) * step; t <= view.end; t += step) ticks.push(t);
-  const laneWords = pxPerSec > 22 ? words.filter((w) => w.end > view.start && w.start < view.end) : [];
 
   return (
     <div className="trim">
-      <div className="trim-head">
-        <span className="faint trim-hint">
-          Drag the handles to trim. They snap to word boundaries; hold <kbd className="kbd">Alt</kbd> for free movement.
-        </span>
-        <IconButton size="sm" label="Fit clip in view" onClick={() => setView(windowFor(clip, total))}>
-          <ArrowsInLineHorizontal />
-        </IconButton>
-      </div>
-      <div className="trim-ruler mono" aria-hidden="true">
-        {ticks.map((t) => (
-          <span key={t} style={{ left: pct(t) }}>
-            {clock(t)}
-          </span>
-        ))}
-      </div>
-      <div
-        ref={trackRef}
-        className="trim-track"
-        onPointerDown={(e) => {
-          if ((e.target as HTMLElement).closest(".trim-handle")) return;
-          player.seek(toTime(e.clientX));
-        }}
-      >
-        <Waveform
-          peaks={peaks instanceof Uint8Array ? peaks : null}
-          start={view.start}
-          end={view.end}
-          className="trim-wave"
-          ranges={trimRange}
-        />
-        <div className="trim-region" style={{ left: pct(clip.start), width: `${((clip.end - clip.start) / span) * 100}%` }} />
-        {(["start", "end"] as const).map((edge) => (
-          <div
-            key={edge}
-            role="slider"
-            tabIndex={0}
-            aria-label={edge === "start" ? "Clip start" : "Clip end"}
-            aria-valuetext={clock(clip[edge], { tenths: true })}
-            className={`trim-handle is-${edge} ${dragging === edge ? "is-dragging" : ""}`}
-            style={{ left: pct(clip[edge]) }}
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId);
-              setDragging(edge);
-            }}
-            onPointerMove={(e) => onHandleMove(e, edge)}
-            onPointerUp={() => setDragging(null)}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-              e.preventDefault();
-              e.stopPropagation();
-              const delta = (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 1 : 0.1);
-              const v = clip[edge] + delta;
-              if (edge === "start" && v >= 0 && v < clip.end - 1) updateClip(clip.id, { start: v }, { coalesce: `trim-${clip.id}-start` });
-              if (edge === "end" && v <= total && v > clip.start + 1) updateClip(clip.id, { end: v }, { coalesce: `trim-${clip.id}-end` });
-            }}
-          >
-            <span className="trim-grip" />
-            {dragging === edge && <span className="trim-tip mono">{clock(clip[edge], { tenths: true })}</span>}
-          </div>
-        ))}
-        <div ref={headRef} className="trim-head-line" />
-      </div>
-      {laneWords.length > 0 && (
-        <div className="trim-words" aria-hidden="true">
-          {laneWords.map((w) => (
-            <span
-              key={w.i}
-              className={w.start >= clip.start - 0.02 && w.end <= clip.end + 0.05 ? "is-in" : ""}
-              style={{ left: pct(w.start), width: `${((w.end - w.start) / span) * 100}%` }}
+      <div className="trim-track-wrap">
+        <div
+          ref={trackRef}
+          className="trim-track"
+          onPointerDown={(e) => {
+            if ((e.target as HTMLElement).closest(".trim-handle")) return;
+            player.seek(toTime(e.clientX));
+          }}
+        >
+          <Waveform peaks={peaks instanceof Uint8Array ? peaks : null} start={view.start} end={view.end} className="trim-wave" ranges={trimRange} />
+          {(["start", "end"] as const).map((edge) => (
+            <div
+              key={edge}
+              role="slider"
+              tabIndex={0}
+              aria-label={edge === "start" ? "Clip start" : "Clip end"}
+              aria-valuetext={clock(clip[edge], { tenths: true })}
+              className={`trim-handle is-${edge} ${dragging === edge ? "is-dragging" : ""}`}
+              style={{ left: pct(clip[edge]) }}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setDragging(edge);
+              }}
+              onPointerMove={(e) => onHandleMove(e, edge)}
+              onPointerUp={() => setDragging(null)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                e.preventDefault();
+                e.stopPropagation();
+                const delta = (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 1 : 0.1);
+                const v = clip[edge] + delta;
+                if (edge === "start" && v >= 0 && v < clip.end - 1) updateClip(clip.id, { start: v }, { coalesce: `trim-${clip.id}-start` });
+                if (edge === "end" && v <= total && v > clip.start + 1) updateClip(clip.id, { end: v }, { coalesce: `trim-${clip.id}-end` });
+              }}
             >
-              {w.text}
-            </span>
+              <span className="trim-grip" />
+              {dragging === edge && <span className="trim-tip mono">{clock(clip[edge], { tenths: true })}</span>}
+            </div>
           ))}
+          <div ref={headRef} className="trim-head-line" />
         </div>
-      )}
+        <div className="trim-foot">
+          <span className="mono faint">{clock(clip.start)}</span>
+          <span className="faint trim-hint">
+            Drag to trim. Handles snap to words, hold <kbd className="kbd">Alt</kbd> to move freely.
+          </span>
+          <span className="mono faint">{clock(clip.end)}</span>
+          <IconButton size="sm" label="Fit clip in view" onClick={() => setView(windowFor(clip, total))}>
+            <ArrowsInLineHorizontal />
+          </IconButton>
+        </div>
+      </div>
+      <ClipTranscript words={clipWords} />
     </div>
   );
 }

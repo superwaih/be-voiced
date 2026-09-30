@@ -3,6 +3,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { AnimatePresence, motion } from "motion/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
+import { DeleteProjectDialog } from "./components/DeleteProjectDialog";
 import { Sidebar } from "./components/Sidebar";
 import { Toasts } from "./components/Toasts";
 import { importFile, MEDIA_EXTENSIONS, openProject } from "./lib/actions";
@@ -123,6 +124,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <DeleteProjectDialog />
       <Toasts />
     </div>
   );

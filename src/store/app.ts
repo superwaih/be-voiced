@@ -47,6 +47,8 @@ interface AppStore {
   library: ProjectMeta[];
   jobs: Record<string, JobState>;
   toasts: Toast[];
+  /** Project waiting on the delete confirmation, from whichever view asked. */
+  pendingDelete: ProjectMeta | null;
 
   setView: (view: View) => void;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
@@ -55,6 +57,7 @@ interface AppStore {
   refreshLibrary: () => Promise<void>;
   upsertMeta: (meta: ProjectMeta) => void;
   removeMeta: (id: string) => void;
+  askDelete: (meta: ProjectMeta | null) => void;
   toast: (t: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
   runJob: <T>(
@@ -74,6 +77,7 @@ export const useApp = create<AppStore>((set, get) => ({
   library: [],
   jobs: {},
   toasts: [],
+  pendingDelete: null,
 
   setView: (view) => set({ view }),
 
@@ -98,6 +102,7 @@ export const useApp = create<AppStore>((set, get) => ({
       return { library: [merged, ...s.library.filter((m) => m.id !== meta.id)] };
     }),
   removeMeta: (id) => set((s) => ({ library: s.library.filter((m) => m.id !== id) })),
+  askDelete: (meta) => set({ pendingDelete: meta }),
 
   toast: (t) => {
     const id = crypto.randomUUID();

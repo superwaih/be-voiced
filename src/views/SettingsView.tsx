@@ -240,7 +240,10 @@ export function SettingsView() {
     <div className="page">
       <div className="page-inner settings">
         <header className="page-header">
-          <h1 className="page-title">Settings</h1>
+          <div>
+            <h1 className="page-title">Settings</h1>
+            <p className="page-sub">Transcription, keys and where finished files land.</p>
+          </div>
         </header>
 
         <Section title="Transcription" description="Local keeps audio on this computer. Cloud is faster on long files and separates speakers.">

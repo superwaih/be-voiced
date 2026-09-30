@@ -89,6 +89,36 @@ export async function openProject(id: string, target?: { view: "workspace" | "ed
   }
 }
 
+/**
+ * Removes the project folder in app data: transcript, moments, clips, captions and export history.
+ * The imported recording and any files already exported are left where they are.
+ */
+export async function deleteProject(id: string) {
+  const app = useApp.getState();
+  const name = app.library.find((m) => m.id === id)?.name ?? "Project";
+  try {
+    if (useProject.getState().project?.id === id) {
+      // Let any pending autosave land first, then drop the project so nothing writes the folder back.
+      await useProject.getState().flush();
+      useProject.setState({ project: null, past: [], future: [] });
+      void app.updateSettings({ lastProjectId: null });
+      if (app.view === "project") app.setView("projects");
+    }
+    await ipc.deleteProject(id);
+    app.removeMeta(id);
+    usePeaks.setState((s) => {
+      const byProject = { ...s.byProject };
+      delete byProject[id];
+      return { byProject };
+    });
+    app.toast({ tone: "neutral", title: `Deleted ${name}`, body: "Your recording is still on disk." });
+  } catch (err) {
+    reportError("Could not delete project", err);
+  } finally {
+    useApp.getState().askDelete(null);
+  }
+}
+
 export async function relinkSource() {
   const project = useProject.getState().project;
   if (!project) return;

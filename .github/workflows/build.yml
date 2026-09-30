@@ -1,0 +1,62 @@
+# Installers for both platforms, built on GitHub's runners.
+#
+# A macOS app cannot be produced on Windows: the bundle needs macOS tooling and a
+# macOS whisper.cpp/FFmpeg sidecar. Run this workflow instead and download the
+# artifacts. Neither build is signed, so macOS users must right-click, Open.
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            label: macos-universal
+            target: universal-apple-darwin
+          - os: windows-latest
+            label: windows-x64
+            target: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: pnpm install --frozen-lockfile
+
+      # FFmpeg, ffprobe and whisper-cli for this target. whisper.cpp is compiled
+      # from source, so this is the slow step; the Rust cache does not cover it.
+      - name: Fetch and build sidecars
+        run: pnpm sidecars ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+      - name: Build app
+        run: pnpm tauri build ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: be-voiced-${{ matrix.label }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe

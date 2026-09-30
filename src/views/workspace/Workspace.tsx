@@ -6,6 +6,7 @@ import {
   FolderOpen,
   Sparkle,
   TextAa,
+  Trash,
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
@@ -108,6 +109,16 @@ export function Workspace() {
                 onSelect: () => setTranscribeOpen(true),
               },
               { label: "Show source file", icon: <FolderOpen />, disabled: sourceMissing, onSelect: () => void ipc.revealPath(project.source.path) },
+              "divider",
+              {
+                label: "Delete project",
+                icon: <Trash />,
+                danger: true,
+                onSelect: () => {
+                  const meta = useApp.getState().library.find((m) => m.id === project.id);
+                  if (meta) useApp.getState().askDelete(meta);
+                },
+              },
             ]}
           >
             <DotsThree weight="bold" />

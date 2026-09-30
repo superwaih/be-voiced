@@ -1,5 +1,4 @@
 import { DotsThree, FolderOpen, MagnifyingGlass, Trash, UploadSimple, WarningCircle } from "@phosphor-icons/react";
-import { ask } from "@tauri-apps/plugin-dialog";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { ProjectCover } from "../components/Covers";
@@ -8,8 +7,7 @@ import { openProject } from "../lib/actions";
 import { bytes, duration, relativeDate } from "../lib/format";
 import { ipc } from "../lib/ipc";
 import type { ProjectMeta } from "../lib/types";
-import { reportError, useApp } from "../store/app";
-import { useProject } from "../store/project";
+import { useApp } from "../store/app";
 import { chooseAndImport, nextStep, rise } from "./HomeView";
 
 type Filter = "all" | "imported" | "transcribed" | "clips";
@@ -26,23 +24,6 @@ export function ProjectsView() {
     const q = query.trim().toLowerCase();
     return library.filter((m) => matches(m, filter) && (!q || m.name.toLowerCase().includes(q) || m.sourceName.toLowerCase().includes(q)));
   }, [library, query, filter]);
-
-  const remove = async (id: string, name: string) => {
-    const ok = await ask(`Delete "${name}"? The transcript, clips and captions will be removed. Your original media file is not touched.`, {
-      title: "Delete project",
-      kind: "warning",
-      okLabel: "Delete",
-      cancelLabel: "Keep",
-    });
-    if (!ok) return;
-    try {
-      if (useProject.getState().project?.id === id) await useProject.getState().close();
-      await ipc.deleteProject(id);
-      useApp.getState().removeMeta(id);
-    } catch (err) {
-      reportError("Could not delete project", err);
-    }
-  };
 
   return (
     <div className="page">
@@ -122,7 +103,7 @@ export function ProjectsView() {
                           { label: "Open", onSelect: () => void openProject(m.id) },
                           { label: "Show source file", icon: <FolderOpen />, disabled: m.sourceMissing, onSelect: () => void ipc.revealPath(m.sourcePath) },
                           "divider",
-                          { label: "Delete project", icon: <Trash />, danger: true, onSelect: () => void remove(m.id, m.name) },
+                          { label: "Delete project", icon: <Trash />, danger: true, onSelect: () => useApp.getState().askDelete(m) },
                         ]}
                       >
                         <DotsThree weight="bold" />
