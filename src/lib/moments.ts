@@ -79,7 +79,7 @@ const HOUSEKEEPING =
 const FILLERS = /\b(um+|uh+|erm|hmm|you know|i mean|kind of|sort of|like,)\b/g;
 const LEADING_FILLER = /^((so|and|but|yeah|yes|well|okay|ok|right|um+|uh+|like|i mean|you know)[,.]?\s+)+/i;
 
-const STOPWORDS = new Set(
+export const STOPWORDS = new Set(
   (
     "a about above after again against all also am an and any are aren't as at be because been before being below between both but by can can't cannot could couldn't did didn't do does doesn't doing don't down during each even few for from further get gets getting go going gonna got had hadn't has hasn't have haven't having he he'd he'll he's her here here's hers herself him himself his how how's i i'd i'll i'm i've if in into is isn't it it's its itself just know let's like lot make me more most much mustn't my myself no nor not now of off on once one only or other ought our ours ourselves out over own people really right said same say says see she she'd she'll she's should shouldn't so some such take than that that's the their theirs them themselves then there there's these they they'd they'll they're they've thing things think this those though through to too two under until up us very want was wasn't way we we'd we'll we're we've well were weren't what what's when when's where where's which while who who's whom why why's will with won't would wouldn't yeah yes you you'd you'll you're you've your yours yourself yourselves okay actually basically kind sort mean guess stuff maybe probably something anything everything someone everybody anyway gotta wanna"
   ).split(" "),
@@ -139,7 +139,7 @@ function emptyCue(): Record<CueCategory, number> {
 
 const countMatches = (text: string, re: RegExp) => text.match(re)?.length ?? 0;
 
-function tokenize(text: string) {
+export function tokenize(text: string) {
   return text
     .toLowerCase()
     .replace(/[^\p{L}\p{N}'\s-]/gu, " ")
@@ -241,6 +241,12 @@ export function findMoments(t: Transcript, opts: FindOptions): AnalyzeResult {
   const focusTerms = opts.focus ? tokenize(opts.focus).map((w) => w.replace(/(ing|ed|es|s)$/, "").slice(0, Math.max(4, w.length - 3))) : [];
   const duration = opts.duration || units[units.length - 1].end;
 
+  // Window bounds scale with the material. A 90-minute podcast gets the usual 26-95s moments; a
+  // two-minute clip gets proportionally shorter ones, so "the top three" can actually be three.
+  const maxLen = Math.max(24, Math.min(95, duration / 2.2));
+  const minLen = Math.max(9, Math.min(26, duration / 10));
+  const idealLen = Math.max(16, Math.min(60, duration / 4));
+
   const candidates: Candidate[] = [];
   for (let i = 0; i < units.length; i++) {
     // Starting on a filler fragment or on housekeeping rarely makes a good opening.
@@ -249,11 +255,11 @@ export function findMoments(t: Transcript, opts: FindOptions): AnalyzeResult {
       const start = units[i].start;
       const end = units[j].end;
       const len = end - start;
-      if (len > 95 && j > i) break;
-      if (len < 26) continue;
+      if (len > maxLen && j > i) break;
+      if (len < minLen) continue;
       const c = scoreWindow(i, j, start, end);
       if (c) candidates.push(c);
-      if (len > 95) break;
+      if (len > maxLen) break;
     }
   }
 
@@ -346,10 +352,10 @@ export function findMoments(t: Transcript, opts: FindOptions): AnalyzeResult {
     if (start < duration * 0.03 || end > duration * 0.97) score -= 1;
     if (conf / Math.max(1, words) < 0.6) score -= 0.6;
 
-    // Length: about 60 seconds is ideal, 30 to 90 is normal.
-    const lengthFit = Math.exp(-(((len - 60) / 32) ** 2));
+    // Length: the ideal sits in the middle of the window range for this recording.
+    const lengthFit = Math.exp(-(((len - idealLen) / (idealLen * 0.53)) ** 2));
     score = score * (0.55 + 0.45 * lengthFit);
-    if (len > 90) score *= 0.8;
+    if (len > idealLen * 1.5) score *= 0.8;
 
     if (focusTerms.length) {
       const text = units.slice(i, j + 1).map((u) => u.text.toLowerCase()).join(" ");
@@ -373,14 +379,20 @@ export function findMoments(t: Transcript, opts: FindOptions): AnalyzeResult {
   const floor = Math.max(focusTerms.length ? 0.6 : 1.2, top * (focusTerms.length ? 0.25 : 0.38));
   const picked: Candidate[] = [];
   const taken = [...opts.existing];
-  for (const c of open) {
-    if (picked.length >= opts.count) break;
-    // Quality over quantity: stop when the remaining candidates are much weaker than the best.
-    if (c.score < floor) break;
-    if (taken.some((r) => c.start < r.end - 1 && c.end > r.start + 1)) continue;
-    picked.push(c);
-    taken.push({ start: c.start, end: c.end });
-  }
+  const fill = (bar: number) => {
+    for (const c of open) {
+      if (picked.length >= opts.count) break;
+      // Quality over quantity: stop when the remaining candidates are much weaker than the best.
+      if (c.score < bar) break;
+      if (taken.some((r) => c.start < r.end - 1 && c.end > r.start + 1)) continue;
+      picked.push(c);
+      taken.push({ start: c.start, end: c.end });
+    }
+  };
+  fill(floor);
+  // Asking for three and getting one is a worse answer than three honest ones, so when the strict
+  // bar came up short, go round again at a lower one rather than returning a near-empty list.
+  if (picked.length < opts.count) fill(Math.max(0.5, top * 0.16));
 
   const names = new Map(t.speakers.map((s) => [s.id, s.name]));
   const docFreq = buildDocFreq(units);

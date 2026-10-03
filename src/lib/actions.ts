@@ -8,7 +8,7 @@ import { errorMessage, ipc, isCancelled } from "./ipc";
 import { findMoments as findMomentsLocal } from "./moments";
 import { applyAnalysis, newClip, newProject, projectMeta, suggestionCount } from "./project";
 import { buildUnits, flattenWords, snapToSentences, wordsInRange } from "./transcript";
-import type { Clip, ExportKind, ExportRecord, Project, Resolution, TextIntelligence } from "./types";
+import type { Clip, ExportKind, ExportRecord, LinkInfo, Project, Resolution, TextIntelligence } from "./types";
 
 export const MEDIA_EXTENSIONS = ["mp4", "mov", "mkv", "webm", "mp3", "wav", "m4a"];
 
@@ -54,7 +54,7 @@ export async function pickMediaFile(): Promise<string | null> {
   return typeof selected === "string" ? selected : null;
 }
 
-export async function importFile(path: string) {
+export async function importFile(path: string, opts: { stay?: boolean } = {}) {
   const app = useApp.getState();
   try {
     const imported = await app.runJob({ kind: "import", label: "Importing", stage: "Reading media" }, () => ipc.importMedia(path));
@@ -62,10 +62,66 @@ export async function importFile(path: string) {
     await useProject.getState().close();
     useProject.getState().open(project);
     await useProject.getState().flush();
-    app.setView("project");
+    // `stay` keeps tabs that can drive a project themselves, like Clips, where they are.
+    if (!opts.stay) app.setView("project");
     void ensurePeaks(project);
+    return project.id;
   } catch (err) {
     reportError("Could not import that file", err);
+    return null;
+  }
+}
+
+/**
+ * Make a project current without leaving the tab you are on. Clips and Ask use this to transcribe,
+ * find moments and edit without a detour through the workspace.
+ */
+export async function loadProjectQuietly(id: string): Promise<boolean> {
+  const store = useProject.getState();
+  if (store.project?.id === id) return true;
+  try {
+    const project = await ipc.loadProject(id);
+    await store.close();
+    useProject.getState().open(project);
+    void ensurePeaks(project);
+    return true;
+  } catch (err) {
+    reportError("Could not open that recording", err);
+    return false;
+  }
+}
+
+/**
+ * Paste a link, get a project. The media is fetched to the project folder first, so transcription,
+ * moments, clips and export all run on a local file exactly as an imported recording does.
+ *
+ * Returns the new project id, or null when the fetch failed or was cancelled.
+ */
+export type LinkResult = { ok: true; id: string } | { ok: false; error: string; cancelled: boolean };
+
+export async function importLink(url: string, probed?: LinkInfo | null): Promise<LinkResult> {
+  const app = useApp.getState();
+  try {
+    const info = probed ?? (await ipc.probeLink(url));
+    const fetched = await app.runJob(
+      { kind: "import", label: info.title || "Downloading", stage: "Downloading" },
+      (jobId) => ipc.fetchLink(jobId, url, info),
+    );
+    const project: Project = {
+      ...newProject(fetched),
+      name: (fetched.link.title || newProject(fetched).name).slice(0, 120),
+      link: fetched.link,
+      chat: [],
+    };
+    await useProject.getState().close();
+    useProject.getState().open(project);
+    await useProject.getState().flush();
+    void ensurePeaks(project);
+    return { ok: true, id: project.id };
+  } catch (err) {
+    // The caller shows this next to the link box: a toast disappears before it can be read, and a
+    // download that stops needs to say why.
+    return { ok: false, error: errorMessage(err), cancelled: isCancelled(err) };
   }
 }
 
@@ -156,9 +212,9 @@ export async function createPreview() {
 
 // --- Transcribe ------------------------------------------------------------------------------
 
-export async function transcribe(engine: "local" | "cloud") {
+export async function transcribe(engine: "local" | "cloud"): Promise<boolean> {
   const project = useProject.getState().project;
-  if (!project) return;
+  if (!project) return false;
   const { settings, runJob } = useApp.getState();
   try {
     const transcript = await runJob(
@@ -202,8 +258,10 @@ export async function transcribe(engine: "local" | "cloud") {
         ? `${transcript.speakers.length} speakers detected.`
         : "Local transcripts have one speaker label. Reassign turns from the transcript.",
     });
+    return true;
   } catch (err) {
-    reportError("Transcription failed", err);
+    if (!isCancelled(err)) reportError("Transcription failed", err);
+    return false;
   }
 }
 

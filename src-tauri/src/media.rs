@@ -121,7 +121,7 @@ pub async fn probe(path: &Path) -> AppResult<MediaInfo> {
     })
 }
 
-async fn make_thumbnail(src: &Path, info: &MediaInfo, out: &Path) -> AppResult<()> {
+pub async fn make_thumbnail(src: &Path, info: &MediaInfo, out: &Path) -> AppResult<()> {
     let at = if info.duration > 30.0 {
         (info.duration * 0.1).min(120.0)
     } else {

@@ -306,12 +306,13 @@ export function SettingsView() {
           </Field>
         </Section>
 
-        <Section title="Media engine" description="FFmpeg and whisper.cpp ship inside the app.">
+        <Section title="Media engine" description="FFmpeg, whisper.cpp and yt-dlp ship inside the app. yt-dlp is what turns a pasted link into media.">
           <ul className="engine-list">
             {[
               { name: "FFmpeg", ok: sidecars?.ffmpeg },
               { name: "ffprobe", ok: sidecars?.ffprobe },
               { name: "whisper.cpp", ok: sidecars?.whisper },
+              { name: "yt-dlp", ok: sidecars?.ytdlp },
             ].map((e) => (
               <li key={e.name} className={e.ok ? "is-ok" : "is-missing"}>
                 {e.ok ? <CheckCircle weight="fill" /> : <WarningCircle weight="fill" />}
@@ -320,7 +321,7 @@ export function SettingsView() {
               </li>
             ))}
           </ul>
-          {sidecars && (!sidecars.ffmpeg || !sidecars.ffprobe || !sidecars.whisper) && (
+          {sidecars && (!sidecars.ffmpeg || !sidecars.ffprobe || !sidecars.whisper || !sidecars.ytdlp) && (
             <p className="faint engine-note" data-selectable>
               Developer builds need the sidecar binaries in src-tauri/binaries. Run <code>pnpm sidecars</code>, then restart the app.
               Expected folder: {sidecars.folder}

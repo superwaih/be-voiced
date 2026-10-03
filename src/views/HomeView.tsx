@@ -223,7 +223,7 @@ function SectionHead({ title, action, onAction }: { title: string; action: strin
 
 function NowEditing({ meta, reduce }: { meta: ProjectMeta; reduce: boolean | null }) {
   const reviewing = !!meta.topSuggestions?.length;
-  const tracks: ClipMeta[] = reviewing ? meta.topSuggestions! : meta.clips.slice(0, 3);
+  const tracks: ClipMeta[] = reviewing ? meta.topSuggestions!.slice(0, 3) : meta.clips.slice(0, 3);
   return (
     <motion.article className="card now-editing" {...rise(reduce, 3)}>
       <button className="now-cover" onClick={() => void openProject(meta.id)} aria-label={`Open ${meta.name}`}>

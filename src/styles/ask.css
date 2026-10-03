@@ -1,0 +1,549 @@
+/* ---- Ask a link ---------------------------------------------------------------------------- */
+/* A column, not a grid: the link bar appears and disappears between the header and the body. */
+.ask {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.ask-header,
+.ask-linkbar {
+  flex: none;
+}
+.ask-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px;
+  min-width: 0;
+}
+.ask-title {
+  min-width: 0;
+}
+.ask-title h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 520px;
+}
+.ask-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+.ask-meta .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ask-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.ask-linkbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+.ask-linkbar .linkbox {
+  flex: 1;
+}
+
+.ask-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(380px, 460px);
+  gap: 16px;
+  min-height: 0;
+  padding: 0 20px 20px;
+}
+.ask-chat,
+.ask-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-radius: 22px;
+  overflow: hidden;
+}
+:root[data-theme="dark"] .ask-chat,
+:root[data-theme="dark"] .ask-pane {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ---- Thread -------------------------------------------------------------------------------- */
+.thread {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.bubble {
+  align-self: flex-end;
+  max-width: 76%;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.answer {
+  max-width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.answer-lead {
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.answer-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.answer.is-thinking {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: dot 1s infinite ease-in-out;
+}
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.cites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cites li {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  transition: background-color var(--dur-fast) ease;
+}
+.cites li:hover {
+  background: var(--surface-hover);
+}
+.cite-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  align-self: start;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.cite-time svg {
+  width: 10px;
+  height: 10px;
+}
+.cite-time:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.cite-body {
+  min-width: 0;
+}
+.cite-label {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+}
+.cite-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.cite-speaker {
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+.ask-chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px 22px;
+}
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.starter {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+.starter:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-softer);
+}
+
+.ask-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 14px 14px;
+  padding: 5px 5px 5px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.ask-field {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.ask-field::placeholder {
+  color: var(--text-3);
+}
+.ask-field:focus {
+  outline: none;
+}
+.ask-input .icon-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 50%;
+}
+.ask-input .icon-btn:disabled {
+  background: var(--surface-hover);
+  color: var(--text-3);
+}
+
+/* ---- Recording panel ------------------------------------------------------------------------ */
+.ask-pane {
+  padding: 14px;
+  gap: 10px;
+}
+.ask-stage {
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--stage);
+  box-shadow: 0 0 0 1px var(--line);
+  flex: none;
+}
+.ask-pane .segmented {
+  width: 100%;
+}
+.ask-pane .segmented button {
+  flex: 1;
+  justify-content: center;
+}
+.ask-pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.ask-pane-empty {
+  padding: 20px 4px;
+}
+
+.ask-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ask-line {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  transition: background-color var(--dur-fast) ease;
+}
+.ask-line:hover {
+  background: var(--surface-hover);
+}
+.ask-line.is-current {
+  background: var(--accent-surface);
+}
+.ask-line-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.ask-line-speaker {
+  font-weight: 700;
+}
+.ask-line-text {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+.ask-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 2px;
+}
+.ask-facts {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.ask-facts dt {
+  color: var(--text-3);
+}
+.ask-facts dd {
+  margin: 0;
+}
+.ask-topics h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.ask-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 13px;
+  transition: background-color var(--dur-fast) ease;
+}
+.ask-topic:hover {
+  background: var(--surface-hover);
+}
+.ask-topic-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ask-topic .faint {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ---- Paste box and the empty tab ------------------------------------------------------------ */
+.ask-start {
+  max-width: 720px;
+  margin-bottom: 36px;
+}
+.ask-supported {
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-top: 10px;
+  max-width: 60ch;
+}
+.linkbox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.linkbox-row {
+  display: flex;
+  gap: 8px;
+}
+.linkbox-row .input {
+  flex: 1;
+  min-width: 0;
+}
+/* The field takes the slack; the button keeps its label at any width. */
+.linkbox-row .btn,
+.link-found .btn {
+  flex: none;
+}
+.linkbox-error {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--danger-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+.linkbox-error svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 1px;
+}
+.linkbox-error p {
+  white-space: pre-wrap;
+}
+.linkbox-error .link-btn {
+  color: var(--danger);
+  margin-top: 6px;
+}
+.linkbox-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.link-found {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 14px 14px 18px;
+  border-radius: 16px;
+  background: var(--accent-surface);
+}
+.link-found-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13.5px;
+  gap: 2px;
+}
+.link-found-text .faint {
+  font-size: 12.5px;
+}
+.link-found-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.link-found-hint svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ask-picker {
+  max-width: 720px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-bottom: 12px;
+}
+.ask-picker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+.ask-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: left;
+  min-width: 0;
+  transition: background-color var(--dur-fast) ease;
+}
+:root[data-theme="dark"] .ask-pick {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.ask-pick:hover {
+  background: var(--surface-hover);
+}
+.ask-pick-cover {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 10px;
+}
+.ask-pick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+  font-size: 13px;
+}
+.ask-pick-text .faint {
+  font-size: 12px;
+}
+
+@media (max-width: 1240px) {
+  .ask-body {
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 380px);
+    gap: 12px;
+  }
+}
+
+.ask-chat-job {
+  padding: 0 20px 4px;
+}
+.ask-pane-empty .jobcard {
+  margin-bottom: 12px;
+}
+.ask-wait {
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 0 2px;
+}
+.ask-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--accent-surface);
+  font-size: 12.5px;
+  margin-bottom: 12px;
+}

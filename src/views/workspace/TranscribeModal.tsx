@@ -38,7 +38,7 @@ function Option({
   );
 }
 
-export function TranscribeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone?: () => void }) {
   const project = useProject((s) => s.project)!;
   const settings = useApp((s) => s.settings);
   const models = useApp((s) => s.models);
@@ -58,7 +58,8 @@ export function TranscribeModal({ open, onClose }: { open: boolean; onClose: () 
   const start = () => {
     onClose();
     void updateSettings({ transcriptionMode: engine });
-    void transcribe(engine);
+    // onDone lets a caller chain the next step, like Clips running the moment finder straight after.
+    void transcribe(engine).then((ok) => ok && onDone?.());
   };
 
   return (

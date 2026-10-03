@@ -8,6 +8,7 @@
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { defaultCaptionStyle } from "../lib/captions";
 import { projectMeta } from "../lib/project";
+import { useApp } from "../store/app";
 import type { Clip, Project, Segment, Settings } from "../lib/types";
 
 const LINES: [string, string][] = [
@@ -122,6 +123,19 @@ function sampleProject(): Project {
       clip({ id: "c5", origin: "manual", status: "saved", rank: undefined, title: "The hardest part was trust, not hardware", start: at(23, "start"), end: at(23, "end"), aspect: "1:1", exports: [{ id: "e1", kind: "captioned", path: "C:/Videos/Be Voiced/trust.mp4", createdAt: iso(12), aspect: "1:1", resolution: 1080, bytes: 14_220_114 }] }),
     ],
     analysis: { model: "Be Voiced moment finder", createdAt: iso(40), runs: 1 },
+    link: {
+      resolver: "yt-dlp",
+      mediaUrl: "https://x.com/example/status/1234567890",
+      pageUrl: "https://x.com/example/status/1234567890",
+      title: "Cold chain with Priya Raman",
+      uploader: "example",
+      duration: 347,
+      thumbnail: null,
+      size: 38_200_000,
+      isLive: false,
+      site: "twitter",
+    },
+    chat: [],
     transcriptExports: [],
     ui: { view: "workspace", clipId: null, time: at(13, "start") + 2 },
   };
@@ -129,13 +143,23 @@ function sampleProject(): Project {
 
 const project = sampleProject();
 (window as unknown as { __qaProject: Project }).__qaProject = project;
-const otherMeta = {
-  ...projectMeta({ ...project, id: "qa-2", name: "Quarterly product review", transcript: null, clips: [], analysis: null, topics: [], updatedAt: iso(60 * 26) }),
-  hasVideo: true,
-  duration: 3480,
-  size: 1_904_220_311,
-  sourceName: "product-review.mov",
+/** A second, untranscribed recording so flows that start from scratch can be exercised. */
+const other: Project = {
+  ...project,
+  id: "qa-2",
+  name: "Quarterly product review",
+  transcript: null,
+  clips: [],
+  analysis: null,
+  topics: [],
+  chat: [],
+  link: null,
+  thumbnailPath: null,
+  previewPath: null,
+  updatedAt: iso(60 * 26),
+  source: { ...project.source, name: "product-review.mov", extension: "mov", duration: 3480, size: 1_904_220_311, hasVideo: true },
 };
+const otherMeta = projectMeta(other);
 
 const settings: Settings = {
   theme: (new URLSearchParams(location.search).get("theme") as Settings["theme"]) ?? "dark",
@@ -160,14 +184,15 @@ function peaks(duration: number) {
 mockWindows("main");
 mockConvertFileSrc("windows");
 mockIPC(
-  (cmd) => {
+  (cmd, args) => {
+    const id = (args as { projectId?: string } | undefined)?.projectId;
     switch (cmd) {
       case "load_settings":
         return settings;
       case "save_settings":
         return null;
       case "sidecar_status":
-        return { ffmpeg: true, ffprobe: true, whisper: true, folder: "C:/Program Files/Be Voiced" };
+        return { ffmpeg: true, ffprobe: true, whisper: true, ytdlp: true, folder: "C:/Program Files/Be Voiced" };
       case "default_export_dir":
         return settings.exportDir;
       case "api_key_status":
@@ -182,16 +207,64 @@ mockIPC(
       case "list_projects":
         return [projectMeta(project, Uint8Array.from(peaks(project.source.duration))), otherMeta];
       case "load_project":
-        return project;
+        return id === "qa-2" ? other : project;
       case "save_project":
         return null;
       case "load_peaks":
         return peaks(project.source.duration);
       case "path_exists":
         return false;
+      case "probe_link":
+        return {
+          resolver: "yt-dlp",
+          mediaUrl: "https://x.com/example/status/1234567890",
+          pageUrl: "https://x.com/example/status/1234567890",
+          title: "Tokenization of RWAs is just the first step",
+          uploader: "yellowpanther",
+          duration: 212,
+          thumbnail: null,
+          size: 24_000_000,
+          isLive: false,
+          site: "twitter",
+        };
       default:
         return null;
     }
   },
   { shouldMockEvents: true },
 );
+
+// `&job=transcribe` (or download, analyze) seeds a running job so progress states can be reviewed
+// without the native shell. Dev-only, like the rest of this file.
+const jobKind = new URLSearchParams(location.search).get("job");
+if (jobKind) {
+  const kind = jobKind === "download" ? "import" : (jobKind as "transcribe" | "analyze");
+  const id = "qa-job";
+  const label = kind === "import" ? "Tokenization of RWAs is just the first step" : kind === "analyze" ? "Finding moments" : "Transcribing locally";
+  const stages =
+    kind === "import"
+      ? ["Downloading", "Preparing media"]
+      : kind === "analyze"
+        ? ["Reading the transcript", "Scoring moments"]
+        : ["Preparing audio", "Transcribing"];
+  let progress = 0.04;
+  useApp.setState((s) => ({
+    jobs: {
+      ...s.jobs,
+      [id]: { id, kind, label, projectId: kind === "import" ? undefined : "qa-project", stage: stages[0], progress, detail: null, startedAt: Date.now() },
+    },
+  }));
+  window.setInterval(() => {
+    progress = Math.min(0.97, progress + 0.03);
+    useApp.setState((s) =>
+      s.jobs[id]
+        ? {
+            jobs: {
+              ...s.jobs,
+              [id]: { ...s.jobs[id], progress, stage: stages[progress > 0.45 ? 1 : 0], detail: kind === "import" ? `${Math.round(progress * 24)} MB` : null },
+            },
+          }
+        : s,
+    );
+  }, 900);
+}

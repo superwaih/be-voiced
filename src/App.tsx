@@ -10,6 +10,7 @@ import { importFile, MEDIA_EXTENSIONS, openProject } from "./lib/actions";
 import { isTauri } from "./lib/ipc";
 import { bootApp, useApp } from "./store/app";
 import { useProject } from "./store/project";
+import { AskView } from "./views/AskView";
 import { ClipsView } from "./views/ClipsView";
 import { HomeView } from "./views/HomeView";
 import { ProjectView } from "./views/ProjectView";
@@ -34,7 +35,7 @@ function useTheme() {
 function useFileDrop() {
   const [hovering, setHovering] = useState(false);
   useEffect(() => {
-    if (!isTauri) return;
+    if (!isTauri()) return;
     let unlisten: (() => void) | undefined;
     void getCurrentWebview()
       .onDragDropEvent((event) => {
@@ -64,7 +65,7 @@ export default function App() {
   const dropping = useFileDrop();
 
   useEffect(() => {
-    if (!isTauri) {
+    if (!isTauri()) {
       setBootError("Be Voiced runs as a desktop app. Start it with `pnpm tauri dev`.");
       return;
     }
@@ -110,6 +111,7 @@ export default function App() {
             {view === "projects" && <ProjectsView />}
             {view === "transcripts" && <TranscriptsView />}
             {view === "clips" && <ClipsView />}
+            {view === "ask" && <AskView />}
             {view === "settings" && <SettingsView />}
             {view === "project" && <ProjectView />}
           </motion.div>

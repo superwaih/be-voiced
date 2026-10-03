@@ -18,6 +18,7 @@ use crate::error::{AppError, AppResult};
 pub const FFMPEG: &str = "ffmpeg";
 pub const FFPROBE: &str = "ffprobe";
 pub const WHISPER: &str = "whisper-cli";
+pub const YTDLP: &str = "yt-dlp";
 
 pub fn sidecar_path(name: &str) -> PathBuf {
     let dir = std::env::current_exe()
@@ -47,6 +48,7 @@ pub struct SidecarStatus {
     pub ffmpeg: bool,
     pub ffprobe: bool,
     pub whisper: bool,
+    pub ytdlp: bool,
     pub folder: String,
 }
 
@@ -56,6 +58,7 @@ pub fn sidecar_status() -> SidecarStatus {
         ffmpeg: sidecar_path(FFMPEG).is_file(),
         ffprobe: sidecar_path(FFPROBE).is_file(),
         whisper: sidecar_path(WHISPER).is_file(),
+        ytdlp: sidecar_path(YTDLP).is_file(),
         folder: sidecar_path(FFMPEG)
             .parent()
             .map(|p| p.display().to_string())

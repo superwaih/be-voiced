@@ -38,7 +38,7 @@ const isWindows = triple.includes("windows");
 const isMac = triple.includes("apple-darwin");
 const ext = isWindows ? ".exe" : "";
 const isHostWindows = process.platform === "win32";
-const only = new Set(process.argv.filter((a) => ["ffmpeg", "whisper"].includes(a)));
+const only = new Set(process.argv.filter((a) => ["ffmpeg", "whisper", "yt-dlp"].includes(a)));
 const want = (name) => only.size === 0 || only.has(name);
 
 /** Newest static GPL release build from BtbN, falling back to the master build. */
@@ -169,6 +169,29 @@ async function fetchFfmpeg() {
   rmSync(work, { recursive: true, force: true });
 }
 
+/**
+ * yt-dlp resolves a pasted link (X, YouTube, podcast pages) to a media stream. It ships as a single
+ * self-contained binary per platform, so there is nothing to build.
+ */
+async function fetchYtDlp() {
+  console.log(`yt-dlp for ${triple}`);
+  const asset = isWindows
+    ? triple.startsWith("aarch64")
+      ? null
+      : "yt-dlp.exe"
+    : isMac
+      ? "yt-dlp_macos"
+      : triple.startsWith("aarch64")
+        ? "yt-dlp_linux_aarch64"
+        : "yt-dlp_linux";
+  if (!asset) throw new Error(`yt-dlp has no prebuilt binary for ${triple}. Links cannot be imported on this target.`);
+  const cache = join(root, "src-tauri", "target", "sidecar-cache");
+  mkdirSync(cache, { recursive: true });
+  const dest = join(cache, asset);
+  await download(`https://github.com/yt-dlp/yt-dlp/releases/latest/download/${asset}`, dest);
+  install(dest, "yt-dlp");
+}
+
 function buildWhisper() {
   console.log(`whisper.cpp ${WHISPER_REF} for ${triple}`);
   const cacheDir = join(root, "src-tauri", "target", "whisper.cpp");
@@ -214,7 +237,7 @@ function universalMac() {
   for (const t of ["aarch64-apple-darwin", "x86_64-apple-darwin"]) {
     execFileSync(process.execPath, [fileURLToPath(import.meta.url), "--target", t, ...only], { stdio: "inherit" });
   }
-  for (const name of ["ffmpeg", "ffprobe", "whisper-cli"]) {
+  for (const name of ["ffmpeg", "ffprobe", "whisper-cli", "yt-dlp"]) {
     const parts = ["aarch64-apple-darwin", "x86_64-apple-darwin"].map((t) => join(outDir, `${name}-${t}`));
     if (!parts.every(existsSync)) continue;
     const dest = join(outDir, `${name}-universal-apple-darwin`);
@@ -231,6 +254,7 @@ try {
     process.exit(0);
   }
   if (want("ffmpeg")) await fetchFfmpeg();
+  if (want("yt-dlp")) await fetchYtDlp();
   if (want("whisper")) buildWhisper();
   console.log("Sidecars ready.");
 } catch (err) {

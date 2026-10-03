@@ -750,3 +750,73 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Clips: recordings you can drive from here ---------------------------------------------- */
+.makers {
+  margin-bottom: 30px;
+}
+.maker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 8px;
+}
+.maker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 16px;
+  background: var(--surface);
+  min-width: 0;
+}
+:root[data-theme="dark"] .maker {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.maker-cover {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 10px;
+}
+.maker-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+}
+.maker-text .faint {
+  font-size: 12px;
+}
+.maker-action {
+  flex: none;
+  font-size: 12px;
+}
+.maker-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--danger);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sheet-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.maker-busy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 130px;
+  font-size: 11.5px;
+}

@@ -2,6 +2,7 @@ mod error;
 mod export;
 mod intelligence;
 mod jobs;
+mod links;
 mod media;
 mod paths;
 mod projects;
@@ -27,6 +28,8 @@ pub fn run() {
             settings::set_api_key,
             settings::delete_api_key,
             settings::verify_api_key,
+            links::probe_link,
+            links::fetch_link,
             media::import_media,
             media::probe_media,
             media::generate_peaks,
@@ -46,6 +49,7 @@ pub fn run() {
             export::write_text_file,
             export::path_exists,
             export::open_path,
+            export::open_url,
             export::reveal_path,
         ])
         .run(tauri::generate_context!())

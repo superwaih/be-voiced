@@ -5,7 +5,7 @@ A desktop app for finding the parts of long conversations worth publishing.
 Import a podcast, interview, webinar, meeting or X Space, transcribe it locally with whisper.cpp or in the cloud with Deepgram, let Be Voiced find the strongest moments, then trim, caption and export clips.
 
 ```
-Import  ->  Transcribe  ->  Read and edit  ->  Find moments  ->  Trim  ->  Caption  ->  Export
+Import or paste a link  ->  Transcribe  ->  Read, ask and edit  ->  Find moments  ->  Trim  ->  Caption  ->  Export
 ```
 
 ## Stack
@@ -15,10 +15,12 @@ Import  ->  Transcribe  ->  Read and edit  ->  Find moments  ->  Trim  ->  Capti
 | Shell | Tauri v2 (Rust) |
 | UI | React 19, TypeScript, Vite, zustand, Motion, Phosphor icons, Manrope and IBM Plex Mono |
 | Media | FFmpeg and ffprobe sidecars |
+| Links | yt-dlp sidecar, plus direct media URLs and podcast feeds handled in Rust |
 | Local transcription | whisper.cpp (`whisper-cli`) sidecar |
 | Cloud transcription | Deepgram `nova-3` (diarization, punctuation, word timings, confidence) |
 | Topics and signals | Deepgram Text Intelligence (`/v1/read`: topics, intents, sentiment), optional |
 | Moment finder | Local transcript analysis in `src/lib/moments.ts` |
+| Answers | Local retrieval over the transcript in `src/lib/ask.ts` |
 
 No LLM API is used. All processing runs through Rust commands. The webview never spawns processes and never sees the Deepgram key.
 
@@ -28,18 +30,18 @@ Prerequisites: Node 20+, pnpm, Rust (stable). Building whisper.cpp also needs gi
 
 ```bash
 pnpm install
-pnpm sidecars            # downloads FFmpeg/ffprobe and builds whisper-cli for this machine
+pnpm sidecars            # downloads FFmpeg/ffprobe and yt-dlp, builds whisper-cli for this machine
 pnpm tauri dev
 ```
 
-`pnpm sidecars` writes to `src-tauri/binaries/` using the target-triple names Tauri requires (for example `ffmpeg-x86_64-pc-windows-msvc.exe`). It can fetch one part at a time: `pnpm sidecars ffmpeg` or `pnpm sidecars whisper`. Downloads are cached in `src-tauri/target/sidecar-cache`.
+`pnpm sidecars` writes to `src-tauri/binaries/` using the target-triple names Tauri requires (for example `ffmpeg-x86_64-pc-windows-msvc.exe`). It can fetch one part at a time: `pnpm sidecars ffmpeg`, `pnpm sidecars yt-dlp` or `pnpm sidecars whisper`. Downloads are cached in `src-tauri/target/sidecar-cache`.
 
 Tauri refuses to compile while any `externalBin` entry is missing, so there are variants for partial setups:
 
 | Command | Needs | Use when |
 | --- | --- | --- |
-| `pnpm tauri dev` | FFmpeg, ffprobe, whisper-cli | Everything is installed |
-| `pnpm app:dev:no-whisper` | FFmpeg, ffprobe | whisper.cpp is not built yet. Import, Deepgram transcription, moments and export all work |
+| `pnpm tauri dev` | FFmpeg, ffprobe, whisper-cli, yt-dlp | Everything is installed |
+| `pnpm app:dev:no-whisper` | FFmpeg, ffprobe, yt-dlp | whisper.cpp is not built yet. Import, links, Deepgram transcription, moments and export all work |
 | `pnpm app:dev:ui` | nothing | Interface work only. Media features report the missing engine |
 
 In the running app, open **Settings** to:
@@ -54,6 +56,10 @@ In the running app, open **Settings** to:
 ## How it works
 
 **Import.** Drag a file onto the window or use the file picker. ffprobe reads duration, streams and rotation; FFmpeg grabs a thumbnail and decodes a waveform. Source media plays in place through Tauri's asset protocol, scoped to files you imported. If the webview cannot decode a container (common for MKV), the player offers a 720p H.264 preview copy; exports always use the original.
+
+**Links.** Paste a URL in **Ask a link** and the media is fetched into a new project, so everything downstream behaves exactly as an imported file. Three resolvers are tried in order: a direct media URL is streamed with Rust, a podcast feed has its newest enclosure pulled, and anything else goes to the bundled yt-dlp (X and Twitter videos, YouTube, Vimeo, SoundCloud, show pages). Video is capped at 720p and merged to MP4 with the bundled FFmpeg, which is also what makes X's HLS streams work. The link is probed before anything downloads, so you see the title, uploader and length first, and the download reports real progress and cancels. Podcast and direct links work even in a build without the yt-dlp sidecar. Fetching media you do not have the rights to may breach a site's terms; that call is yours.
+
+**Answers.** The **Ask a link** tab answers questions about a recording from its transcript (`src/lib/ask.ts`). It reads the question's intent, retrieves the passages that answer it (rare words weighted, loose stemming, phrase bonus, neighbour smoothing so answers come out as passages rather than clipped sentences) and replies with a short lead plus the passages themselves, each with a timestamp that plays that moment. "Top moments" reuses the moment finder, "what is this about" uses the topics, and questions about speakers or length are answered from the transcript's own facts. It runs on this computer, needs no key, and never paraphrases past what was said: when nothing matches, it says so rather than inventing an answer. Engines are pluggable (`Engine` in `ask.ts`), so a cloud engine can be added without touching the interface. The chat is kept with the project.
 
 **Transcription.** Both engines produce the same shape (`src-tauri/src/transcript.rs`): timed words grouped into speaker segments.
 - Local: FFmpeg extracts 16 kHz mono WAV, `whisper-cli` runs with full JSON output, tokens are merged into words with timings and probabilities. Whisper does not separate speakers; select text and use **Split turn**, then set the speaker from its label.
@@ -102,20 +108,21 @@ The bundled FFmpeg builds are GPL-licensed (they include libx264 and libass). Re
 ```
 src/
   App.tsx, main.tsx          shell, theme, drag and drop, session restore
-  lib/                       ipc, player controller, transcript, caption and moment engines, actions
+  lib/                       ipc, player controller, transcript, caption, moment and answer engines, actions
   store/                     app state (settings, jobs, library), project state (autosave, undo), waveform peaks
   components/                UI primitives, waveform and cover art
-  views/                     Home, Projects, Transcripts, Clips, Settings, workspace/, editor/
+  views/                     Home, Projects, Transcripts, Clips, Ask, Settings, workspace/, editor/
   styles/                    tokens.css (plum #320B35, light sheet and pure-black dark) and component styles
   dev/qa.ts                  dev-only visual QA harness
 src-tauri/src/
   sidecar.rs                 resolve and run FFmpeg / ffprobe / whisper-cli with progress and cancel
   media.rs                   probe, thumbnails, waveform peaks, preview copies
+  links.rs                   pasted links to local media (direct, podcast feed, yt-dlp)
   transcribe.rs, whisper.rs  Deepgram and whisper.cpp transcription
   intelligence.rs            Deepgram Text Intelligence (topics, intents, sentiment)
   transcript.rs              normalized transcript model
   export.rs                  clip rendering, file open and reveal
   projects.rs, settings.rs   local storage, keychain-backed API key
   jobs.rs                    progress events and cancellation
-scripts/sidecars.mjs         fetch FFmpeg and build whisper.cpp per target
+scripts/sidecars.mjs         fetch FFmpeg and yt-dlp, build whisper.cpp per target
 ```

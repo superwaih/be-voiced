@@ -135,6 +135,45 @@ export interface Analysis {
   runs: number;
 }
 
+/** Where a project came from when it was not a local file. */
+export interface LinkInfo {
+  resolver: "direct" | "feed" | "yt-dlp";
+  mediaUrl: string;
+  pageUrl: string;
+  title: string;
+  uploader: string | null;
+  duration: number | null;
+  thumbnail: string | null;
+  size: number | null;
+  isLive: boolean;
+  site: string;
+}
+
+/** A passage of the transcript an answer is built from. Always carries its place in the recording. */
+export interface Citation {
+  start: number;
+  end: number;
+  speaker: string;
+  text: string;
+  /** Short label for the chip, e.g. the moment title. */
+  label?: string;
+}
+
+export type AnswerEngine = "local" | "deepgram" | "claude";
+
+export interface ChatMessage {
+  id: string;
+  role: "you" | "app";
+  text: string;
+  createdAt: string;
+  /** Which approach produced this answer. */
+  engine?: AnswerEngine;
+  citations?: Citation[];
+  /** Shown under the answer when the engine fell back or found little. */
+  note?: string;
+  pending?: boolean;
+}
+
 export type ProjectView = "workspace" | "editor";
 
 export interface Project {
@@ -151,6 +190,10 @@ export interface Project {
   clips: Clip[];
   analysis: Analysis | null;
   transcriptExports: ExportRecord[];
+  /** Set when the project came from a pasted link rather than a local file. */
+  link?: LinkInfo | null;
+  /** Questions asked about this transcript, kept with the project. */
+  chat?: ChatMessage[];
   ui: { view: ProjectView; clipId: string | null; time: number };
 }
 
@@ -194,6 +237,10 @@ export interface ProjectMeta {
   wave?: number[];
   /** Opening lines of the transcript, for the reading list. */
   excerpt?: string;
+  /** Present when the project came from a pasted link. */
+  link?: LinkInfo | null;
+  /** Number of questions asked about this transcript. */
+  chatCount?: number;
   sourceMissing?: boolean;
 }
 
@@ -222,6 +269,7 @@ export interface SidecarStatus {
   ffmpeg: boolean;
   ffprobe: boolean;
   whisper: boolean;
+  ytdlp: boolean;
   folder: string;
 }
 

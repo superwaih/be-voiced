@@ -59,7 +59,8 @@
     "externalBin": [
       "binaries/ffmpeg",
       "binaries/ffprobe",
-      "binaries/whisper-cli"
+      "binaries/whisper-cli",
+      "binaries/yt-dlp"
     ],
     "windows": {
       "webviewInstallMode": { "type": "downloadBootstrapper" },

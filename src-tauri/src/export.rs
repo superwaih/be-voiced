@@ -206,6 +206,18 @@ pub fn open_path(app: AppHandle, path: String) -> AppResult<()> {
         .map_err(|e| AppError::msg(format!("Could not open file: {e}")))
 }
 
+/// Open a web link in the default browser. Only http(s), so a link in a project can never run
+/// anything local.
+#[tauri::command]
+pub fn open_url(app: AppHandle, url: String) -> AppResult<()> {
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err(AppError::msg("Only web links can be opened."));
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| AppError::msg(format!("Could not open link: {e}")))
+}
+
 #[tauri::command]
 pub fn reveal_path(app: AppHandle, path: String) -> AppResult<()> {
     app.opener()

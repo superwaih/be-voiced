@@ -3,13 +3,13 @@ import { useState } from "react";
 import { useApp } from "../store/app";
 import { IconButton, Popover, Progress } from "./ui";
 
-/** Background work (exports, downloads, waveforms) in the sidebar, with details on click. */
+/** Every background task (imports, downloads, transcripts, exports) in the sidebar, with details on click. */
 export function JobTray() {
   const jobs = useApp((s) => s.jobs);
   const cancel = useApp((s) => s.cancelJob);
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
-  const visible = Object.values(jobs).filter((j) => j.kind !== "import");
+  const visible = Object.values(jobs);
   if (!visible.length) return null;
 
   const known = visible.filter((j) => j.progress !== null);

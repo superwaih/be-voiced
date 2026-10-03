@@ -6,6 +6,7 @@ import type {
   ExportResult,
   ImportedMedia,
   KeyStatus,
+  LinkInfo,
   MediaInfo,
   Project,
   ProjectMeta,
@@ -17,7 +18,11 @@ import type {
   WhisperModel,
 } from "./types";
 
-export const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+/**
+ * Checked on call, not at import: the dev QA harness installs Tauri's IPC mocks after this module
+ * is first loaded, and a value frozen at import time would miss them.
+ */
+export const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export class AppError extends Error {
   kind: AppErrorPayload["kind"];
@@ -68,6 +73,9 @@ export const ipc = {
   verifyKey: (provider: "deepgram") => call<void>("verify_api_key", { provider }),
 
   importMedia: (path: string) => call<ImportedMedia>("import_media", { path }),
+  probeLink: (url: string) => call<LinkInfo>("probe_link", { url }),
+  fetchLink: (jobId: string, url: string, info: LinkInfo | null) =>
+    call<ImportedMedia & { link: LinkInfo }>("fetch_link", { jobId, url, info }),
   relinkSource: (path: string) => call<MediaInfo>("relink_source", { path }),
   generatePeaks: (req: { jobId: string; projectId: string; sourcePath: string; duration: number }) =>
     call<number[]>("generate_peaks", { req }),
@@ -115,5 +123,6 @@ export const ipc = {
   writeTextFile: (path: string, contents: string) => call<void>("write_text_file", { path, contents }),
   pathExists: (path: string) => call<boolean>("path_exists", { path }),
   openPath: (path: string) => call<void>("open_path", { path }),
+  openUrl: (url: string) => call<void>("open_url", { url }),
   revealPath: (path: string) => call<void>("reveal_path", { path }),
 };

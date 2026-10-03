@@ -132,13 +132,16 @@ export function projectMeta(p: Project, peaks?: Uint8Array | null, previous?: Pr
     speakerCount: p.transcript?.speakers.length ?? 0,
     suggestionCount: p.clips.filter((c) => c.status === "suggested").length,
     clips: p.clips.filter((c) => c.status === "saved").map(clipMeta),
+    // Six, not three: the Clips tab shows these as tiles, and Home takes the first three.
     topSuggestions: p.clips
       .filter((c) => c.status === "suggested")
       .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))
-      .slice(0, 3)
+      .slice(0, 6)
       .map(clipMeta),
     wave: peaks ? packWave(sampleWave(peaks, 0, p.source.duration, 96)) : previous?.wave,
     excerpt: p.transcript ? excerptOf(p) : undefined,
+    link: p.link ?? null,
+    chatCount: p.chat?.length ?? 0,
   };
 }
 
