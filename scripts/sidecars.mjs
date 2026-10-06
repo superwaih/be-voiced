@@ -138,11 +138,37 @@ function findFile(dir, name) {
   return null;
 }
 
+/**
+ * Ad-hoc code signature, which costs nothing and needs no Apple account.
+ *
+ * Apple Silicon refuses to run a binary with no signature at all, and anything fetched from the web
+ * or stitched together with lipo arrives either unsigned or with its signature invalidated. Signing
+ * with "-" satisfies that requirement. It is not notarization: Gatekeeper still warns on first run.
+ */
+function adhocSign(file) {
+  if (process.platform !== "darwin") return;
+  try {
+    execFileSync("codesign", ["--force", "--sign", "-", "--timestamp=none", file], { stdio: "pipe" });
+  } catch (err) {
+    console.log(`  could not sign ${file}: ${String(err.message).split(String.fromCharCode(10))[0]}`);
+  }
+}
+
 function install(src, name) {
   const dest = join(outDir, `${name}-${triple}${ext}`);
   copyFileSync(src, dest);
   if (!isWindows) chmodSync(dest, 0o755);
+  if (isMac) adhocSign(dest);
   console.log(`  installed ${dest}`);
+}
+
+/** Architectures inside a Mach-O file, so an already-universal binary is not lipo'd again. */
+function machoArchs(file) {
+  try {
+    return execFileSync("lipo", ["-archs", file], { encoding: "utf8" }).trim().split(/\s+/);
+  } catch {
+    return [];
+  }
 }
 
 async function fetchFfmpeg() {
@@ -241,7 +267,16 @@ function universalMac() {
     const parts = ["aarch64-apple-darwin", "x86_64-apple-darwin"].map((t) => join(outDir, `${name}-${t}`));
     if (!parts.every(existsSync)) continue;
     const dest = join(outDir, `${name}-universal-apple-darwin`);
-    execFileSync("lipo", ["-create", ...parts, "-output", dest], { stdio: "inherit" });
+    const already = parts.find((p) => machoArchs(p).includes("arm64") && machoArchs(p).includes("x86_64"));
+    if (already) {
+      // yt-dlp ships one binary that already carries both slices; lipo refuses to merge those.
+      copyFileSync(already, dest);
+    } else {
+      execFileSync("lipo", ["-create", ...parts, "-output", dest], { stdio: "inherit" });
+    }
+    chmodSync(dest, 0o755);
+    // lipo and copy both drop the signature the parts had, so sign the result, not the parts.
+    adhocSign(dest);
     console.log(`  installed ${dest}`);
   }
 }

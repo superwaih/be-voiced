@@ -111,7 +111,6 @@ export async function importLink(url: string, probed?: LinkInfo | null): Promise
       ...newProject(fetched),
       name: (fetched.link.title || newProject(fetched).name).slice(0, 120),
       link: fetched.link,
-      chat: [],
     };
     await useProject.getState().close();
     useProject.getState().open(project);

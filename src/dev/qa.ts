@@ -9,7 +9,7 @@ import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { defaultCaptionStyle } from "../lib/captions";
 import { projectMeta } from "../lib/project";
 import { useApp } from "../store/app";
-import type { Clip, Project, Segment, Settings } from "../lib/types";
+import type { AskEntry, Clip, Project, Segment, Settings } from "../lib/types";
 
 const LINES: [string, string][] = [
   ["S0", "Welcome back. Today I'm talking with Priya Raman, who spent nine years running logistics for a grocery chain before starting her own cold storage company. Priya, thanks for coming on."],
@@ -135,7 +135,6 @@ function sampleProject(): Project {
       isLive: false,
       site: "twitter",
     },
-    chat: [],
     transcriptExports: [],
     ui: { view: "workspace", clipId: null, time: at(13, "start") + 2 },
   };
@@ -181,6 +180,32 @@ function peaks(duration: number) {
   return out;
 }
 
+/** Ask history lives in memory for the harness, the way the real one lives in app data. */
+let askHistory: AskEntry[] = [
+  {
+    id: "qa-ask-1",
+    projectId: "qa-project",
+    title: "Cold chain with Priya Raman",
+    site: "twitter",
+    url: "https://x.com/example/status/1234567890",
+    duration: project.source.duration,
+    thumbnailPath: null,
+    createdAt: iso(90),
+    updatedAt: iso(30),
+    messages: [
+      { id: "m1", role: "you", text: "Give me the top three moments", createdAt: iso(30) },
+      {
+        id: "m2",
+        role: "app",
+        text: "Three moments worth watching.",
+        createdAt: iso(30),
+        engine: "local",
+        citations: project.clips.slice(0, 3).map((c) => ({ start: c.start, end: c.end, speaker: c.speaker ?? "", label: c.title, text: c.summary ?? "" })),
+      },
+    ],
+  },
+];
+
 mockWindows("main");
 mockConvertFileSrc("windows");
 mockIPC(
@@ -214,6 +239,23 @@ mockIPC(
         return peaks(project.source.duration);
       case "path_exists":
         return false;
+      case "load_ask_history":
+        return askHistory;
+      case "save_ask_entry": {
+        const entry = (args as { entry: AskEntry }).entry;
+        const i = askHistory.findIndex((e) => e.id === entry.id);
+        if (i >= 0) askHistory[i] = entry;
+        else askHistory.unshift(entry);
+        return null;
+      }
+      case "delete_ask_entry": {
+        const entryId = (args as { entryId: string }).entryId;
+        askHistory = askHistory.filter((e) => e.id !== entryId);
+        return null;
+      }
+      case "clear_ask_history":
+        askHistory = [];
+        return null;
       case "probe_link":
         return {
           resolver: "yt-dlp",

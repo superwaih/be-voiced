@@ -141,7 +141,6 @@ export function projectMeta(p: Project, peaks?: Uint8Array | null, previous?: Pr
     wave: peaks ? packWave(sampleWave(peaks, 0, p.source.duration, 96)) : previous?.wave,
     excerpt: p.transcript ? excerptOf(p) : undefined,
     link: p.link ?? null,
-    chatCount: p.chat?.length ?? 0,
   };
 }
 

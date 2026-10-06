@@ -59,7 +59,9 @@ In the running app, open **Settings** to:
 
 **Links.** Paste a URL in **Ask a link** and the media is fetched into a new project, so everything downstream behaves exactly as an imported file. Three resolvers are tried in order: a direct media URL is streamed with Rust, a podcast feed has its newest enclosure pulled, and anything else goes to the bundled yt-dlp (X and Twitter videos, YouTube, Vimeo, SoundCloud, show pages). Video is capped at 720p and merged to MP4 with the bundled FFmpeg, which is also what makes X's HLS streams work. The link is probed before anything downloads, so you see the title, uploader and length first, and the download reports real progress and cancels. Podcast and direct links work even in a build without the yt-dlp sidecar. Fetching media you do not have the rights to may breach a site's terms; that call is yours.
 
-**Answers.** The **Ask a link** tab answers questions about a recording from its transcript (`src/lib/ask.ts`). It reads the question's intent, retrieves the passages that answer it (rare words weighted, loose stemming, phrase bonus, neighbour smoothing so answers come out as passages rather than clipped sentences) and replies with a short lead plus the passages themselves, each with a timestamp that plays that moment. "Top moments" reuses the moment finder, "what is this about" uses the topics, and questions about speakers or length are answered from the transcript's own facts. It runs on this computer, needs no key, and never paraphrases past what was said: when nothing matches, it says so rather than inventing an answer. Engines are pluggable (`Engine` in `ask.ts`), so a cloud engine can be added without touching the interface. The chat is kept with the project.
+**Answers.** The **Ask a link** tab answers questions about a recording from its transcript (`src/lib/ask.ts`). It reads the question's intent, retrieves the passages that answer it (rare words weighted, loose stemming, phrase bonus, neighbour smoothing so answers come out as passages rather than clipped sentences) and replies with a short lead plus the passages themselves, each with a timestamp that plays that moment. "Top moments" reuses the moment finder, "what is this about" uses the topics, and questions about speakers or length are answered from the transcript's own facts. It runs on this computer, needs no key, and never paraphrases past what was said: when nothing matches, it says so rather than inventing an answer. Engines are pluggable (`Engine` in `ask.ts`), so a cloud engine can be added without touching the interface.
+
+Conversations are kept apart from recordings, in `ask-history.json` under app data (`src-tauri/src/history.rs`). The two flows only refer to each other by id: clearing history leaves every recording in place, deleting a recording leaves its conversation readable, and a new link takes over the tab while the previous conversation drops into History.
 
 **Transcription.** Both engines produce the same shape (`src-tauri/src/transcript.rs`): timed words grouped into speaker segments.
 - Local: FFmpeg extracts 16 kHz mono WAV, `whisper-cli` runs with full JSON output, tokens are merged into words with timings and probabilities. Whisper does not separate speakers; select text and use **Split turn**, then set the speaker from its label.
@@ -96,10 +98,39 @@ For another target, run `pnpm sidecars --target <triple>` first, then `pnpm taur
 
 You cannot. A `.app`/`.dmg` needs macOS tooling, and the sidecars must be macOS binaries (whisper.cpp is compiled from source per platform). Either build on a Mac, or push the repo and run the **Build installers** workflow in `.github/workflows/build.yml`, which produces a universal macOS bundle on `macos-14` and the Windows MSI/NSIS installers on `windows-latest` and uploads both as artifacts. Trigger it from the Actions tab or by pushing a `v*` tag.
 
-Signing is not configured:
+### macOS without an Apple Developer account
 
-- **macOS**: set `bundle.macOS.signingIdentity` (or `APPLE_SIGNING_IDENTITY`) and notarization credentials. The sidecars must be signed with the same identity; `src-tauri/entitlements.plist` disables library validation until they are.
-- **Windows**: set `bundle.windows.certificateThumbprint` or a `signCommand` to avoid SmartScreen warnings.
+The build is **ad-hoc signed** (`signingIdentity: "-"`), which costs nothing and needs no account,
+certificate or keychain. That signature is not cosmetic: Apple Silicon refuses to run a binary with
+no signature at all, so every sidecar is signed as it is installed, the lipo'd universal binaries are
+signed again afterwards (merging drops the signature), and the workflow seals the finished bundle.
+
+What ad-hoc signing does not buy is notarization, so macOS still stops the first launch. Installing
+takes one extra step, which belongs in your download page:
+
+1. Open the `.dmg` and drag **Be Voiced** to Applications, or unzip `be-voiced-macos-universal.zip`
+   straight into Applications.
+2. Launch it once. macOS refuses, saying the developer cannot be verified.
+3. Open **System Settings → Privacy & Security**, scroll to the message about Be Voiced and choose
+   **Open Anyway**. On older macOS, right-click the app and choose **Open** instead.
+
+One command does the same thing, for anyone who prefers it:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Be Voiced.app"
+```
+
+The quarantine flag is set by the browser on download, so a build copied over by AirDrop, a USB
+stick or `scp` runs without any of this.
+
+To remove the warning entirely you need the Apple Developer Program ($99/year): set
+`APPLE_SIGNING_IDENTITY` to your Developer ID, turn `hardenedRuntime` back on in
+`tauri.conf.json`, and add the notarization credentials (`APPLE_ID`, `APPLE_PASSWORD`,
+`APPLE_TEAM_ID`). Nothing else in the build changes. The sidecars keep their own signatures, which is
+why `entitlements.plist` disables library validation.
+
+**Windows** is unsigned too: SmartScreen warns until you set `bundle.windows.certificateThumbprint`
+or a `signCommand`, and a certificate costs more per year than Apple's.
 
 The bundled FFmpeg builds are GPL-licensed (they include libx264 and libass). Review the licensing implications before distributing.
 
@@ -123,6 +154,7 @@ src-tauri/src/
   transcript.rs              normalized transcript model
   export.rs                  clip rendering, file open and reveal
   projects.rs, settings.rs   local storage, keychain-backed API key
+  history.rs                 ask conversations, stored apart from projects
   jobs.rs                    progress events and cancellation
 scripts/sidecars.mjs         fetch FFmpeg and yt-dlp, build whisper.cpp per target
 ```

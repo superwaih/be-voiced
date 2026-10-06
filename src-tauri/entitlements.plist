@@ -5,8 +5,8 @@
   <!-- WebKit JIT for the webview -->
   <key>com.apple.security.cs.allow-jit</key>
   <true/>
-  <!-- whisper.cpp and FFmpeg sidecars are unsigned third-party builds until you sign them
-       with your Developer ID. Remove this once the sidecars are signed with the same team. -->
+  <!-- The sidecars are third-party builds carrying their own (or an ad-hoc) signature, not this
+       app's. Needed once hardenedRuntime is turned on for a notarized build; harmless before. -->
   <key>com.apple.security.cs.disable-library-validation</key>
   <true/>
   <!-- Deepgram and Anthropic API calls from the Rust backend -->

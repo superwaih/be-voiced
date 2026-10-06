@@ -1,8 +1,12 @@
 # Installers for both platforms, built on GitHub's runners.
 #
-# A macOS app cannot be produced on Windows: the bundle needs macOS tooling and a
-# macOS whisper.cpp/FFmpeg sidecar. Run this workflow instead and download the
-# artifacts. Neither build is signed, so macOS users must right-click, Open.
+# A macOS app cannot be produced on Windows: the bundle needs macOS tooling and macOS sidecars. Run
+# this workflow instead and download the artifacts.
+#
+# Neither build is signed with a paid certificate. The macOS app is ad-hoc signed ("-"), which costs
+# nothing and is what lets it run at all on Apple Silicon, but it is not notarized: the first launch
+# needs the Gatekeeper step in README.md. Add APPLE_SIGNING_IDENTITY and notarization secrets later
+# to turn this into a clean install without touching the rest of the workflow.
 name: Build installers
 
 on:
@@ -43,20 +47,44 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # FFmpeg, ffprobe and whisper-cli for this target. whisper.cpp is compiled
-      # from source, so this is the slow step; the Rust cache does not cover it.
+      # FFmpeg, ffprobe, yt-dlp and whisper-cli for this target. whisper.cpp is compiled from source,
+      # so this is the slow step; the Rust cache does not cover it. On macOS each binary is ad-hoc
+      # signed as it is installed, including the lipo'd universal ones.
       - name: Fetch and build sidecars
         run: pnpm sidecars ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
       - name: Build app
+        env:
+          # Ad-hoc identity. No Apple Developer account, no certificate, no keychain.
+          APPLE_SIGNING_IDENTITY: "-"
         run: pnpm tauri build ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+      # Seal the bundle ourselves as well: Tauri's own signing step is one version change away from
+      # behaving differently, and an unsigned bundle is refused outright by Apple Silicon.
+      - name: Sign and package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          BUNDLE="src-tauri/target/universal-apple-darwin/release/bundle"
+          APP="$(find "$BUNDLE/macos" -maxdepth 1 -name '*.app' | head -1)"
+          test -n "$APP" || { echo "No .app was produced"; exit 1; }
+          echo "Signing $APP"
+          # Nested executables first: a bundle's seal covers its contents, so anything signed after
+          # the outer signature invalidates it.
+          find "$APP/Contents/MacOS" -type f -perm +111 -print -exec codesign --force --sign - --timestamp=none {} \;
+          codesign --force --sign - --timestamp=none --entitlements src-tauri/entitlements.plist "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+          codesign --display --verbose=2 "$APP" 2>&1 | head -8
+          # ditto keeps symlinks, permissions and the signature intact; `zip` does not.
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "be-voiced-macos-universal.zip"
+          ls -la "$BUNDLE/dmg" || true
 
       - uses: actions/upload-artifact@v4
         with:
           name: be-voiced-${{ matrix.label }}
           if-no-files-found: error
           path: |
+            be-voiced-macos-universal.zip
             src-tauri/target/**/release/bundle/dmg/*.dmg
-            src-tauri/target/**/release/bundle/macos/*.app
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe

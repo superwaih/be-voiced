@@ -1,12 +1,14 @@
 import {
   ArrowRight,
   ArrowSquareOut,
+  ClockCounterClockwise,
   LinkSimple,
   PaperPlaneRight,
   Play,
   SlidersHorizontal,
   Sparkle,
   TextAa,
+  Trash,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
@@ -15,15 +17,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ProjectCover } from "../components/Covers";
 import { JobCard } from "../components/JobCard";
 import { MediaElement } from "../components/media";
-import { Button, EmptyState, IconButton, Progress, Segmented, TextInput } from "../components/ui";
+import { Button, EmptyState, IconButton, Popover, Progress, Segmented, TextInput } from "../components/ui";
 import { ask, suggestedQuestions, type AskResult } from "../lib/ask";
-import { findMoments as findMomentsFor, importLink, openProject } from "../lib/actions";
+import { findMoments as findMomentsFor, importLink, loadProjectQuietly, openProject } from "../lib/actions";
 import { clock, duration, relativeDate } from "../lib/format";
 import { errorMessage, ipc } from "../lib/ipc";
 import { player, usePlayerTime } from "../lib/player";
 import { segmentText } from "../lib/transcript";
-import type { ChatMessage, Citation, LinkInfo, ProjectMeta } from "../lib/types";
+import type { AskEntry, ChatMessage, Citation, LinkInfo, ProjectMeta } from "../lib/types";
 import { reportError, useApp } from "../store/app";
+import { useAsk } from "../store/ask";
 import { useProject } from "../store/project";
 import { Transport } from "./workspace/PlayerPanel";
 import { TranscribeModal } from "./workspace/TranscribeModal";
@@ -332,25 +335,66 @@ function AskSummary() {
   );
 }
 
-function RecordingPicker({ library }: { library: ProjectMeta[] }) {
-  if (!library.length) return null;
+/** Conversations, newest first. These belong to Ask, not to the recordings they are about. */
+function HistoryList({
+  entries,
+  liveIds,
+  currentId,
+  onPick,
+}: {
+  entries: AskEntry[];
+  liveIds: Set<string>;
+  currentId?: string | null;
+  onPick: (entry: AskEntry) => void;
+}) {
+  const remove = useAsk((s) => s.remove);
+  if (!entries.length) return <p className="faint">No conversations yet. Paste a link, or pick a recording below.</p>;
+  return (
+    <div className="ask-picker-list">
+      {entries.map((e) => {
+        const gone = !liveIds.has(e.projectId);
+        return (
+          <div key={e.id} className={`ask-pick-wrap ${e.id === currentId ? "is-current" : ""} ${gone ? "is-gone" : ""}`}>
+            <button className="ask-pick" onClick={() => onPick(e)} aria-current={e.id === currentId ? "true" : undefined}>
+              <ProjectCover thumbnailPath={gone ? null : e.thumbnailPath} wave={e.wave} name={e.title} size="sm" className="ask-pick-cover" />
+              <span className="ask-pick-text">
+                <span className="truncate">{e.title}</span>
+                <span className="faint truncate">
+                  {gone ? (
+                    "Recording deleted"
+                  ) : (
+                    <>
+                      {e.site ? `${e.site}, ` : ""}
+                      {duration(e.duration)}
+                    </>
+                  )}
+                  , {e.messages.length === 1 ? "1 message" : `${e.messages.length} messages`}, {relativeDate(e.updatedAt)}
+                </span>
+              </span>
+            </button>
+            <IconButton size="sm" label={`Remove conversation about ${e.title}`} onClick={() => void remove(e.id)}>
+              <Trash />
+            </IconButton>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Recordings you have but have not asked about: how a conversation starts without a new link. */
+function RecordingPicker({ items, onPick, title }: { items: ProjectMeta[]; onPick: (id: string) => void; title?: string | null }) {
+  if (!items.length) return null;
   return (
     <section className="ask-picker">
-      <h2 className="section-title">Or ask one you already have</h2>
+      {title !== null && <h2 className="section-title">{title ?? "Or ask a recording you already have"}</h2>}
       <div className="ask-picker-list">
-        {library.slice(0, 6).map((m) => (
-          <button
-            key={m.id}
-            className="ask-pick"
-            onClick={async () => {
-              await openProject(m.id);
-              useApp.getState().setView("ask");
-            }}
-          >
+        {items.slice(0, 6).map((m) => (
+          <button key={m.id} className="ask-pick" onClick={() => onPick(m.id)}>
             <ProjectCover thumbnailPath={m.thumbnailPath} wave={m.wave} name={m.name} size="sm" className="ask-pick-cover" />
             <span className="ask-pick-text">
               <span className="truncate">{m.name}</span>
-              <span className="faint">
+              <span className="faint truncate">
                 {m.link ? `${m.link.site}, ` : ""}
                 {duration(m.duration)}, {relativeDate(m.updatedAt)}
               </span>
@@ -370,7 +414,58 @@ export function AskView() {
   const [thinking, setThinking] = useState(false);
   const [showLink, setShowLink] = useState(false);
   const [transcribeOpen, setTranscribeOpen] = useState(false);
-  const messages = useMemo(() => project?.chat ?? [], [project?.chat]);
+  const [historyAnchor, setHistoryAnchor] = useState<HTMLButtonElement | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const entries = useAsk((s) => s.entries);
+  const loadHistory = useAsk((s) => s.load);
+  const clearHistory = useAsk((s) => s.clear);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
+
+  // Conversations saved into project.json before history existed are adopted on first sight.
+  useEffect(() => {
+    const p = project;
+    if (!p?.chat?.length) return;
+    const store = useAsk.getState();
+    if (!store.entryFor(p.id)) store.open(p, library.find((m) => m.id === p.id));
+  }, [project, library]);
+
+  // Recordings still on disk, so a conversation about a deleted one can say so.
+  const liveIds = useMemo(() => new Set(library.map((m) => m.id)), [library]);
+  const entry = useMemo(() => entries.find((e) => e.projectId === project?.id), [entries, project?.id]);
+  const messages = entry?.messages ?? [];
+  const asked = useMemo(() => new Set(entries.map((e) => e.projectId)), [entries]);
+  const unasked = useMemo(() => library.filter((m) => !asked.has(m.id)), [library, asked]);
+
+  /** A new recording takes over the tab: the previous conversation goes back to history. */
+  const reset = () => {
+    setDraft("");
+    setPane("transcript");
+    setShowLink(false);
+    setHistoryOpen(false);
+  };
+
+  const switchTo = async (projectId: string) => {
+    setHistoryOpen(false);
+    if (projectId === useProject.getState().project?.id) return;
+    reset();
+    await loadProjectQuietly(projectId);
+    useApp.getState().setView("ask");
+  };
+
+  const openEntry = (e: AskEntry) => {
+    if (!liveIds.has(e.projectId)) {
+      useApp.getState().toast({
+        tone: "neutral",
+        title: "That recording was deleted",
+        body: "The conversation is still here to read, but there is nothing left to ask.",
+      });
+      return;
+    }
+    void switchTo(e.projectId);
+  };
   // Anything running against this recording: transcription, the moment finder, a preview copy.
   const job = useApp((s) =>
     Object.values(s.jobs).find((j) => j.projectId === project?.id && (j.kind === "transcribe" || j.kind === "analyze" || j.kind === "proxy")),
@@ -379,13 +474,14 @@ export function AskView() {
   const send = async (question: string) => {
     const current = useProject.getState().project;
     if (!current?.transcript || !question.trim() || thinking) return;
-    const asked: ChatMessage = { id: crypto.randomUUID(), role: "you", text: question.trim(), createdAt: new Date().toISOString() };
-    useProject.getState().update((p) => ({ ...p, chat: [...(p.chat ?? []), asked] }), { history: false });
+    const ask0 = useAsk.getState();
+    const thread = ask0.entryFor(current.id) ?? ask0.open(current, useApp.getState().library.find((m) => m.id === current.id));
+    ask0.addMessage(thread.id, { id: crypto.randomUUID(), role: "you", text: question.trim(), createdAt: new Date().toISOString() });
     setDraft("");
     setThinking(true);
     try {
       const result: AskResult = await ask(question, { project: current, transcript: current.transcript, intel: null });
-      const reply: ChatMessage = {
+      useAsk.getState().addMessage(thread.id, {
         id: crypto.randomUUID(),
         role: "app",
         text: result.text,
@@ -393,8 +489,7 @@ export function AskView() {
         engine: result.engine,
         citations: result.citations,
         note: result.note,
-      };
-      useProject.getState().update((p) => ({ ...p, chat: [...(p.chat ?? []), reply] }), { history: false });
+      });
     } catch (err) {
       reportError("Could not answer that", err);
     } finally {
@@ -414,10 +509,27 @@ export function AskView() {
             </div>
           </header>
           <div className="ask-start">
-            <LinkBox autoFocus onImported={() => setTranscribeOpen(true)} />
+            <LinkBox
+              autoFocus
+              onImported={() => {
+                reset();
+                setTranscribeOpen(true);
+              }}
+            />
             <p className="faint ask-supported">{SUPPORTED}</p>
           </div>
-          <RecordingPicker library={library} />
+          <section className="ask-picker">
+            <div className="history-head">
+              <h2 className="section-title">History</h2>
+              {entries.length > 0 && (
+                <button className="link-btn" onClick={() => void clearHistory()}>
+                  Clear history
+                </button>
+              )}
+            </div>
+            <HistoryList entries={entries} liveIds={liveIds} onPick={openEntry} />
+          </section>
+          <RecordingPicker items={unasked} onPick={(id) => void switchTo(id)} />
         </div>
       </div>
     );
@@ -443,6 +555,29 @@ export function AskView() {
           </span>
         </div>
         <div className="ask-actions">
+          <Button ref={setHistoryAnchor} icon={<ClockCounterClockwise />} onClick={() => setHistoryOpen((v) => !v)}>
+            History
+            {entries.length > 0 ? <span className="count mono">{entries.length}</span> : null}
+          </Button>
+          <Popover anchor={historyAnchor} open={historyOpen} onClose={() => setHistoryOpen(false)} align="end" width={380}>
+            <div className="history-pop">
+              <div className="history-head">
+                <h3 className="section-title">Conversations</h3>
+                {entries.length > 0 && (
+                  <button className="link-btn" onClick={() => void clearHistory()}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              <HistoryList entries={entries} liveIds={liveIds} currentId={entry?.id} onPick={openEntry} />
+              {unasked.length > 0 && (
+                <>
+                  <h3 className="section-title history-sub">Not asked yet</h3>
+                  <RecordingPicker items={unasked} onPick={(id) => void switchTo(id)} title={null} />
+                </>
+              )}
+            </div>
+          </Popover>
           <Button icon={<LinkSimple />} onClick={() => setShowLink((v) => !v)}>
             New link
           </Button>
@@ -454,7 +589,13 @@ export function AskView() {
 
       {showLink && (
         <div className="ask-linkbar">
-          <LinkBox autoFocus onImported={() => setTranscribeOpen(true)} />
+          <LinkBox
+            autoFocus
+            onImported={() => {
+              reset();
+              setTranscribeOpen(true);
+            }}
+          />
           <IconButton label="Close" size="sm" onClick={() => setShowLink(false)}>
             <X />
           </IconButton>

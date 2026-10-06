@@ -74,8 +74,8 @@
     },
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "hardenedRuntime": true,
-      "signingIdentity": null,
+      "hardenedRuntime": false,
+      "signingIdentity": "-",
       "entitlements": "entitlements.plist",
       "dmg": {
         "windowSize": { "width": 660, "height": 400 },

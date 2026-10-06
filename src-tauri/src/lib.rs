@@ -1,5 +1,6 @@
 mod error;
 mod export;
+mod history;
 mod intelligence;
 mod jobs;
 mod links;
@@ -20,6 +21,10 @@ pub fn run() {
         .manage(jobs::JobRegistry::default())
         .invoke_handler(tauri::generate_handler![
             jobs::cancel_job,
+            history::load_ask_history,
+            history::save_ask_entry,
+            history::delete_ask_entry,
+            history::clear_ask_history,
             sidecar::sidecar_status,
             settings::load_settings,
             settings::save_settings,

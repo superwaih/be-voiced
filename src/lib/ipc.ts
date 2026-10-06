@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   AppErrorPayload,
+  AskEntry,
   AspectRatio,
   ExportResult,
   ImportedMedia,
@@ -82,6 +83,11 @@ export const ipc = {
   loadPeaks: (projectId: string) => call<number[] | null>("load_peaks", { projectId }),
   createPreviewProxy: (req: { jobId: string; projectId: string; sourcePath: string; duration: number }) =>
     call<string>("create_preview_proxy", { req }),
+
+  loadAskHistory: () => call<AskEntry[]>("load_ask_history"),
+  saveAskEntry: (entry: AskEntry) => call<void>("save_ask_entry", { entry }),
+  deleteAskEntry: (entryId: string) => call<void>("delete_ask_entry", { entryId }),
+  clearAskHistory: () => call<void>("clear_ask_history"),
 
   saveProject: (project: Project, meta: ProjectMeta) => call<void>("save_project", { project, meta }),
   loadProject: (projectId: string) => call<Project>("load_project", { projectId }),

@@ -174,6 +174,25 @@ export interface ChatMessage {
   pending?: boolean;
 }
 
+/**
+ * One conversation in the Ask tab. Stored apart from projects: clearing history leaves every
+ * recording where it is, and deleting a recording leaves the conversation readable.
+ */
+export interface AskEntry {
+  id: string;
+  projectId: string;
+  title: string;
+  /** Where the recording came from, when it came from a link. */
+  site: string | null;
+  url: string | null;
+  duration: number;
+  thumbnailPath: string | null;
+  wave?: number[];
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
+}
+
 export type ProjectView = "workspace" | "editor";
 
 export interface Project {
@@ -192,7 +211,7 @@ export interface Project {
   transcriptExports: ExportRecord[];
   /** Set when the project came from a pasted link rather than a local file. */
   link?: LinkInfo | null;
-  /** Questions asked about this transcript, kept with the project. */
+  /** Legacy: conversations used to live here. Read once, then migrated into ask history. */
   chat?: ChatMessage[];
   ui: { view: ProjectView; clipId: string | null; time: number };
 }
@@ -239,8 +258,6 @@ export interface ProjectMeta {
   excerpt?: string;
   /** Present when the project came from a pasted link. */
   link?: LinkInfo | null;
-  /** Number of questions asked about this transcript. */
-  chatCount?: number;
   sourceMissing?: boolean;
 }
 
