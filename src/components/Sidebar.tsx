@@ -1,4 +1,4 @@
-import { CaretLineLeft, CaretLineRight, ChatCircleDots, FilmStrip, GearSix, House, MoonStars, SquaresFour, Sun, TextAlignLeft } from "@phosphor-icons/react";
+import { CaretLineLeft, CaretLineRight, ChatCircleDots, ClosedCaptioning, GearSix, House, MoonStars, SquaresFour, Sun, TextAlignLeft } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { duration } from "../lib/format";
@@ -11,7 +11,7 @@ const NAV: { view: View; label: string; icon: ReactNode }[] = [
   { view: "home", label: "Home", icon: <House /> },
   { view: "projects", label: "Projects", icon: <SquaresFour /> },
   { view: "transcripts", label: "Transcripts", icon: <TextAlignLeft /> },
-  { view: "clips", label: "Clips", icon: <FilmStrip /> },
+  { view: "captions", label: "Captions", icon: <ClosedCaptioning /> },
   { view: "ask", label: "Ask a link", icon: <ChatCircleDots /> },
 ];
 

@@ -10,6 +10,7 @@ import "./styles/library.css";
 import "./styles/workspace.css";
 import "./styles/editor.css";
 import "./styles/ask.css";
+import "./styles/captions.css";
 
 import { IconContext } from "@phosphor-icons/react";
 import { MotionConfig } from "motion/react";

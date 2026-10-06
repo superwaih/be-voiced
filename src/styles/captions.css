@@ -1,0 +1,146 @@
+/* ---- Captions: a video and its own words ---------------------------------------------------- */
+.captions {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.captions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px;
+  flex: none;
+  min-width: 0;
+}
+.captions-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+.captions-title h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  max-width: 380px;
+}
+.captions-title .mono {
+  font-size: 12.5px;
+}
+.captions-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.captions-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 16px;
+  min-height: 0;
+  padding: 0 20px 20px;
+}
+.captions-main {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 22px;
+  background: var(--surface);
+}
+.captions-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 24px;
+  border-radius: 22px;
+  background: var(--surface);
+}
+:root[data-theme="dark"] .captions-main,
+:root[data-theme="dark"] .captions-side {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* The stage is the picture as it will export, subtitles included. */
+.cap-stage {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 4px 0 8px;
+}
+
+.cap-scrub {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cap-scrub-track {
+  position: relative;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  touch-action: none;
+}
+.cap-scrub-head {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+  pointer-events: none;
+}
+.cap-scrub-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.cap-need-transcript {
+  padding: 8px 0 16px;
+}
+.cap-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 12px 0;
+}
+.cap-note svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+}
+.cap-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+.captions-side .jobcard {
+  margin: 10px 0;
+}
+.captions-side input[type="range"] {
+  width: 100%;
+}
+
+@media (max-width: 1240px) {
+  .captions-body {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    gap: 12px;
+  }
+}

@@ -11,7 +11,7 @@ import { isTauri } from "./lib/ipc";
 import { bootApp, useApp } from "./store/app";
 import { useProject } from "./store/project";
 import { AskView } from "./views/AskView";
-import { ClipsView } from "./views/ClipsView";
+import { CaptionsView } from "./views/CaptionsView";
 import { HomeView } from "./views/HomeView";
 import { ProjectView } from "./views/ProjectView";
 import { ProjectsView } from "./views/ProjectsView";
@@ -110,7 +110,7 @@ export default function App() {
             {view === "home" && <HomeView />}
             {view === "projects" && <ProjectsView />}
             {view === "transcripts" && <TranscriptsView />}
-            {view === "clips" && <ClipsView />}
+            {view === "captions" && <CaptionsView />}
             {view === "ask" && <AskView />}
             {view === "settings" && <SettingsView />}
             {view === "project" && <ProjectView />}

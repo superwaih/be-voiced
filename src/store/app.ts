@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { AppError, errorMessage, ipc, isCancelled, newJobId, onJobProgress } from "../lib/ipc";
 import type { KeyStatus, ProjectMeta, Settings, SidecarStatus, WhisperModel } from "../lib/types";
 
-export type View = "home" | "projects" | "transcripts" | "clips" | "ask" | "settings" | "project";
+export type View = "home" | "projects" | "transcripts" | "captions" | "ask" | "settings" | "project";
 
 export type JobKind = "import" | "transcribe" | "analyze" | "export" | "peaks" | "proxy" | "model";
 

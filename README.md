@@ -79,7 +79,15 @@ With a Deepgram key, Deepgram Text Intelligence adds sentiment strength, intents
 
 **Editor.** One column for the work and one for the settings. The clip plays in its target frame (Original, 16:9, 1:1, 4:5, 9:16, chosen in the header) above a waveform trim timeline whose handles snap to word boundaries (hold Alt for free movement) and the clip's own words. The side column holds length (sentence-level extend and shorten, plus a framing control when the frame crops), why the moment was picked, and captions (three presets, with the full style controls behind **Customize style**). Export opens as a dialog: frame, length, resolution, captions, file name and folder, with progress, the finished file and subtitle side files. Undo and redo cover every edit.
 
-**Captions.** One caption engine (`src/lib/captions.ts`) drives the live preview, SRT and VTT files, and the ASS document FFmpeg burns in, including per-word active highlighting. Three presets: Studio, Punch and Subtitle. Font, size, weight, case, colours, outline, shadow, background box, position and words per caption are all adjustable.
+**Captions tab.** A video and its own words: add a file, transcribe it, and the transcript plays as
+subtitles over the picture in the frame it will export to. Captions are dragged into place on the video itself
+and sized with a slider, and the placement is written as a fraction of the frame so the preview and
+the burned-in render agree exactly (libass gets `\an5\pos()`, the preview the same anchor in CSS).
+Styling is the same engine the clip editor uses, so presets and every control behave identically, and the whole recording renders with the
+subtitles burned in, or exports as an SRT or VTT beside it. This surface is about the video, not the
+text: editing the words themselves belongs in the workspace transcript.
+
+**Caption engine.** One engine (`src/lib/captions.ts`) drives the live preview, SRT and VTT files, and the ASS document FFmpeg burns in, including per-word active highlighting. Three presets: Studio, Punch and Subtitle. Font, size, weight, case, colours, outline, shadow, background box, position and words per caption are all adjustable.
 
 **Export.** H.264/AAC MP4 at 720p or 1080p with real FFmpeg progress and cancel, plus SRT/VTT for a clip and TXT/SRT/VTT for the full transcript. Finished exports can be opened or revealed in Finder or File Explorer. Audio-only sources render captions over a dark frame.
 
@@ -150,7 +158,7 @@ src/
   lib/                       ipc, player controller, transcript, caption, moment and answer engines, actions
   store/                     app state (settings, jobs, library), project state (autosave, undo), waveform peaks
   components/                UI primitives, waveform and cover art
-  views/                     Home, Projects, Transcripts, Clips, Ask, Settings, workspace/, editor/
+  views/                     Home, Projects, Transcripts, Captions, Ask, Settings, workspace/, editor/
   styles/                    tokens.css (plum #320B35, light sheet and pure-black dark) and component styles
   dev/qa.ts                  dev-only visual QA harness
 src-tauri/src/

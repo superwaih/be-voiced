@@ -133,7 +133,7 @@ export function HomeView() {
 
         {latest.length > 0 && (
           <motion.section className="card home-card" {...rise(reduce, 5)}>
-            <SectionHead title="Latest clips" action="All clips" onAction={() => setView("clips")} />
+            <SectionHead title="Latest clips" action="Add captions" onAction={() => setView("captions")} />
             <div className="contact-sheet is-row">
               {latest.map(({ clip, meta }) => (
                 <button key={clip.id} className="sheet-tile" onClick={() => void openProject(meta.id, { view: "editor", clipId: clip.id })}>

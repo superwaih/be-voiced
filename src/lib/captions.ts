@@ -215,6 +215,26 @@ function assColor(hex: string, opacity = 1): string {
 
 const escapeAss = (text: string) => text.replace(/\\/g, "⧵").replace(/[{}]/g, (c) => (c === "{" ? "(" : ")"));
 
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+/**
+ * Where the caption sits, as a fraction of the frame, or null when it still follows the
+ * top/middle/bottom preset. Dragging a caption on the video writes x and y; everything that draws
+ * captions reads them from here so the preview and the burned-in render cannot drift apart.
+ */
+export function captionAnchor(style: CaptionStyle): { x: number; y: number } | null {
+  if (typeof style.x !== "number" || typeof style.y !== "number") return null;
+  return { x: clamp01(style.x), y: clamp01(style.y) };
+}
+
+/** The anchor a preset position corresponds to, so dragging starts from where the caption is. */
+export function anchorFromPosition(style: CaptionStyle): { x: number; y: number } {
+  const free = captionAnchor(style);
+  if (free) return free;
+  const edge = style.offset / 100;
+  return { x: 0.5, y: style.position === "top" ? edge : style.position === "middle" ? 0.5 : 1 - edge };
+}
+
 export function buildAss(groups: CaptionGroup[], style: CaptionStyle, width: number, height: number): string {
   const unit = Math.min(width, height) / 1080;
   const fontSize = Math.round(style.size * unit * (LIBASS_SIZE_RATIO[style.font] ?? 1.15));
@@ -247,10 +267,13 @@ export function buildAss(groups: CaptionGroup[], style: CaptionStyle, width: num
   const events: string[] = [];
   // Override tags take &HBBGGRR& without the alpha byte.
   const highlight = assColor(style.highlightColor).replace(/^&H[0-9A-F]{2}/, "&H");
+  // A dragged caption is placed by its centre, which is what \an5 anchors to.
+  const free = captionAnchor(style);
+  const place = free ? `{\\an5\\pos(${Math.round(free.x * width)},${Math.round(free.y * height)})}` : "";
   for (const g of groups) {
     const texts = g.words.map((w) => escapeAss(displayText(w.text, style)));
     if (!style.activeWord) {
-      events.push(`Dialogue: 0,${assTime(g.start)},${assTime(g.end)},Caption,,0,0,0,,${texts.join(" ")}`);
+      events.push(`Dialogue: 0,${assTime(g.start)},${assTime(g.end)},Caption,,0,0,0,,${place}${texts.join(" ")}`);
       continue;
     }
     // One event per word so the spoken word changes colour exactly on its timestamp.
@@ -259,7 +282,7 @@ export function buildAss(groups: CaptionGroup[], style: CaptionStyle, width: num
       const nextStart = g.words[idx + 1]?.start;
       const end = nextStart !== undefined ? Math.max(start + 0.01, nextStart) : g.end;
       const line = texts.map((t, k) => (k === idx ? `{\\c${highlight}&}${t}{\\r}` : t)).join(" ");
-      events.push(`Dialogue: 0,${assTime(start)},${assTime(end)},Caption,,0,0,0,,${line}`);
+      events.push(`Dialogue: 0,${assTime(start)},${assTime(end)},Caption,,0,0,0,,${place}${line}`);
     });
   }
   return [...header, ...events, ""].join("\n");
@@ -281,6 +304,8 @@ export function previewVars(style: CaptionStyle): Record<string, string> {
     "--cap-bg": style.background ? hexWithAlpha(style.backgroundColor, style.backgroundOpacity) : "transparent",
     "--cap-pad": style.background ? `${u(style.size * 0.12)} ${u(style.size * 0.28)}` : "0",
     "--cap-offset": `${style.offset}%`,
+    "--cap-x": `${(anchorFromPosition(style).x * 100).toFixed(2)}%`,
+    "--cap-y": `${(anchorFromPosition(style).y * 100).toFixed(2)}%`,
   };
 }
 

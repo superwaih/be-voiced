@@ -68,6 +68,10 @@ export interface CaptionStyle {
   position: CaptionPosition;
   /** Distance from the top or bottom edge, % of frame height. */
   offset: number;
+  /** Free placement: the centre of the caption as a fraction of the frame, 0..1. Set by dragging
+   *  the caption on the video; overrides position and offset when present. */
+  x?: number;
+  y?: number;
   wordsPerCaption: number;
 }
 
@@ -213,6 +217,8 @@ export interface Project {
   link?: LinkInfo | null;
   /** Legacy: conversations used to live here. Read once, then migrated into ask history. */
   chat?: ChatMessage[];
+  /** Subtitle styling for the whole recording, used by the Captions tab. */
+  captions?: CaptionStyle;
   ui: { view: ProjectView; clipId: string | null; time: number };
 }
 

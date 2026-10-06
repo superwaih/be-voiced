@@ -507,3 +507,29 @@
     grid-template-columns: minmax(0, 1fr) 290px;
   }
 }
+
+/* Captions placed by hand: the anchor is the centre of the line, the same point libass uses. */
+.cap-layer.is-free {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0;
+}
+.cap-layer.is-free .cap-line {
+  position: absolute;
+  left: var(--cap-x);
+  top: var(--cap-y);
+  transform: translate(-50%, -50%);
+  max-width: 84%;
+}
+.cap-layer.is-draggable .cap-line {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.cap-layer.is-draggable .cap-line:hover {
+  outline: 1px dashed color-mix(in srgb, var(--stage-text) 45%, transparent);
+  outline-offset: 6px;
+}
+.cap-layer.is-draggable .cap-line:active {
+  cursor: grabbing;
+}

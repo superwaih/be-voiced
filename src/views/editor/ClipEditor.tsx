@@ -3,7 +3,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import { MediaElement, Waveform } from "../../components/media";
 import { Button, IconButton, InlineEdit, Segmented } from "../../components/ui";
 import { ensurePeaks, outputFrame } from "../../lib/actions";
-import { groupCaptions, previewVars, type CaptionGroup } from "../../lib/captions";
+import { captionAnchor, groupCaptions, previewVars, type CaptionGroup } from "../../lib/captions";
 import { clock } from "../../lib/format";
 import { player, usePlayerState, usePlayerTime } from "../../lib/player";
 import { flattenWords, snapToWord, wordsInRange, type FlatWord } from "../../lib/transcript";
@@ -82,7 +82,16 @@ export function ClipEditor({ clipId }: { clipId: string }) {
           <TrimTimeline clip={clip} words={words} clipWords={clipWords} />
         </div>
         <aside className="editor-side">
-          <CaptionsPanel clip={clip} />
+          <CaptionsPanel
+            style={clip.captions}
+            enabled={clip.captionsEnabled}
+            onStyle={(patch) =>
+              updateClip(clip.id, (c) => ({ captions: { ...c.captions, ...patch, presetId: patch.presetId ?? "custom" } }), {
+                coalesce: `captions-${clip.id}-${Object.keys(patch).join()}`,
+              })
+            }
+            onEnabled={(v) => updateClip(clip.id, { captionsEnabled: v })}
+          />
           <ClipPanel clip={clip} />
         </aside>
       </div>
@@ -129,8 +138,20 @@ function ClipStage({ clip, clipWords }: { clip: Clip; clipWords: FlatWord[] }) {
   );
 }
 
-export const CaptionOverlay = memo(function CaptionOverlay({ style, words }: { style: CaptionStyle; words: FlatWord[] }) {
+export const CaptionOverlay = memo(function CaptionOverlay({
+  style,
+  words,
+  onMove,
+}: {
+  style: CaptionStyle;
+  words: FlatWord[];
+  /** Supplied where the caption can be dragged. Receives the new centre as fractions of the frame. */
+  onMove?: (x: number, y: number) => void;
+}) {
   const groups = useMemo(() => groupCaptions(words, style.wordsPerCaption, 0), [words, style.wordsPerCaption]);
+  const layerRef = useRef<HTMLDivElement>(null);
+  // Grab offset, so the caption does not jump to centre itself under the pointer.
+  const grab = useRef<{ dx: number; dy: number } | null>(null);
   const [pos, setPos] = useState<{ g: number; w: number }>({ g: -1, w: -1 });
   const posRef = useRef(pos);
   const { playing } = usePlayerState();
@@ -157,11 +178,44 @@ export const CaptionOverlay = memo(function CaptionOverlay({ style, words }: { s
     [groups, playing],
   );
 
+  const clamp = (n: number) => Math.min(1, Math.max(0, n));
+  const frame = () => layerRef.current!.getBoundingClientRect();
+
+  const startDrag = (e: React.PointerEvent) => {
+    if (!onMove || !layerRef.current) return;
+    const r = frame();
+    // Measure where the line actually sits rather than trusting the preset's nominal anchor, so the
+    // first drag off a preset moves the caption instead of jumping it.
+    const line = e.currentTarget.getBoundingClientRect();
+    const at = { x: (line.left + line.width / 2 - r.left) / r.width, y: (line.top + line.height / 2 - r.top) / r.height };
+    grab.current = { dx: (e.clientX - r.left) / r.width - at.x, dy: (e.clientY - r.top) / r.height - at.y };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+
+  const onDrag = (e: React.PointerEvent) => {
+    if (!grab.current || !onMove || e.buttons !== 1) return;
+    const r = frame();
+    onMove(clamp((e.clientX - r.left) / r.width - grab.current.dx), clamp((e.clientY - r.top) / r.height - grab.current.dy));
+  };
+
   const group = pos.g >= 0 ? groups[pos.g] : null;
+  const free = captionAnchor(style);
   return (
-    <div className={`cap-layer is-${style.position}`} style={previewVars(style) as React.CSSProperties} aria-hidden="true">
+    <div
+      ref={layerRef}
+      className={`cap-layer ${free ? "is-free" : `is-${style.position}`} ${onMove ? "is-draggable" : ""}`}
+      style={previewVars(style) as React.CSSProperties}
+      aria-hidden="true"
+    >
       {group && (
-        <div className="cap-line">
+        <div
+          className="cap-line"
+          onPointerDown={startDrag}
+          onPointerMove={onDrag}
+          onPointerUp={() => (grab.current = null)}
+          title={onMove ? "Drag to move the captions" : undefined}
+        >
           <span className="cap-text" style={{ fontWeight: style.bold ? 700 : 400 }}>
             {group.words.map((w, k) => (
               <span key={k} className={style.activeWord && k === pos.w ? "cap-word is-active" : "cap-word"}>

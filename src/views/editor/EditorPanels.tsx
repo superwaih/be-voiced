@@ -120,28 +120,30 @@ export function ClipTranscript({ words }: { words: FlatWord[] }) {
 
 // --- Captions -------------------------------------------------------------------------------------
 
-export function CaptionsPanel({ clip }: { clip: Clip }) {
-  const updateClip = useProject((s) => s.updateClip);
+export function CaptionsPanel({
+  style,
+  enabled,
+  onStyle,
+  onEnabled,
+}: {
+  style: CaptionStyle;
+  enabled: boolean;
+  onStyle: (patch: Partial<CaptionStyle>) => void;
+  onEnabled: (on: boolean) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const style = clip.captions;
-  const set = (patch: Partial<CaptionStyle>) =>
-    updateClip(clip.id, (c) => ({ captions: { ...c.captions, ...patch, presetId: "custom" } }), {
-      coalesce: `captions-${clip.id}-${Object.keys(patch).join()}`,
-    });
+  const set = (patch: Partial<CaptionStyle>) => onStyle(patch);
 
   return (
-    <Block
-      title="Captions"
-      aside={<Switch label="Captions on" checked={clip.captionsEnabled} onChange={(v) => updateClip(clip.id, { captionsEnabled: v })} />}
-    >
-      <fieldset className="caption-fields" disabled={!clip.captionsEnabled}>
+    <Block title="Captions" aside={<Switch label="Captions on" checked={enabled} onChange={onEnabled} />}>
+      <fieldset className="caption-fields" disabled={!enabled}>
         <div className="preset-grid">
           {CAPTION_PRESETS.map((p) => (
             <button
               key={p.id}
               className={`preset ${style.presetId === p.id ? "is-selected" : ""}`}
               aria-pressed={style.presetId === p.id}
-              onClick={() => updateClip(clip.id, { captions: { ...p.style } })}
+              onClick={() => onStyle({ ...p.style })}
               title={p.description}
             >
               <span className="preset-sample" style={previewVars(p.style) as React.CSSProperties}>
