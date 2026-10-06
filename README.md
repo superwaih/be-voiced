@@ -96,7 +96,15 @@ For another target, run `pnpm sidecars --target <triple>` first, then `pnpm taur
 
 ### Building for macOS from Windows
 
-You cannot. A `.app`/`.dmg` needs macOS tooling, and the sidecars must be macOS binaries (whisper.cpp is compiled from source per platform). Either build on a Mac, or push the repo and run the **Build installers** workflow in `.github/workflows/build.yml`, which produces a universal macOS bundle on `macos-14` and the Windows MSI/NSIS installers on `windows-latest` and uploads both as artifacts. Trigger it from the Actions tab or by pushing a `v*` tag.
+You cannot. A `.app`/`.dmg` needs macOS tooling, and the sidecars must be macOS binaries (whisper.cpp is compiled from source per platform). Either build on a Mac, or push the repo and run the **Build installers** workflow in
+`.github/workflows/build.yml`, which produces a universal macOS bundle on `macos-14` and the Windows
+MSI/NSIS installers on `windows-latest`.
+
+- **Run it from the Actions tab** for a test build. The installers appear as *artifacts* on the run
+  page: login-only, zipped by GitHub, deleted after 90 days.
+- **Push a `v*` tag** (`git tag v0.1.0 && git push origin v0.1.0`) to also publish a GitHub Release
+  with the same files attached, which is the permanent public link to hand to anyone else. The
+  release notes carry the first-run instructions for both platforms.
 
 ### macOS without an Apple Developer account
 
