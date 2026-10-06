@@ -218,10 +218,28 @@ async function fetchYtDlp() {
   install(dest, "yt-dlp");
 }
 
+/** A checkout is only usable if the sources are there, not just the .git directory. */
+const isCheckout = (dir) => existsSync(join(dir, ".git")) && existsSync(join(dir, "CMakeLists.txt"));
+
+/**
+ * Where whisper.cpp is cloned. Deliberately outside src-tauri/target: CI caches that directory for
+ * Rust and prunes whatever it does not recognise as build output, which once left a .git behind with
+ * no sources and a build that failed on a missing CMakeLists.txt.
+ */
+function whisperCheckout() {
+  const legacy = join(root, "src-tauri", "target", "whisper.cpp");
+  if (isCheckout(legacy)) return legacy;
+  rmSync(legacy, { recursive: true, force: true });
+  return join(root, ".cache", "whisper.cpp");
+}
+
 function buildWhisper() {
   console.log(`whisper.cpp ${WHISPER_REF} for ${triple}`);
-  const cacheDir = join(root, "src-tauri", "target", "whisper.cpp");
-  if (!existsSync(join(cacheDir, ".git"))) {
+  const cacheDir = whisperCheckout();
+  if (!isCheckout(cacheDir)) {
+    // Half a checkout is worse than none: start clean rather than hand CMake a broken tree.
+    rmSync(cacheDir, { recursive: true, force: true });
+    mkdirSync(dirname(cacheDir), { recursive: true });
     execFileSync("git", ["clone", "--depth", "1", "--branch", WHISPER_REF, "https://github.com/ggml-org/whisper.cpp.git", cacheDir], {
       stdio: "inherit",
     });
