@@ -1,7 +1,7 @@
 import { FolderOpen, Trash } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { deleteProject } from "../lib/actions";
-import { duration } from "../lib/format";
+import { duration } from "@be-voiced/engine/format";
 import { ipc } from "../lib/ipc";
 import { useApp } from "../store/app";
 import { ProjectCover } from "./Covers";

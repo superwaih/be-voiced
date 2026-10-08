@@ -1,5 +1,5 @@
 import { fileSrc } from "../lib/ipc";
-import { unpackWave } from "../lib/wave";
+import { unpackWave } from "@be-voiced/engine/wave";
 import { WaveArt } from "./WaveArt";
 
 function initials(name: string) {

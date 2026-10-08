@@ -17,7 +17,7 @@ import type {
   TextIntelligence,
   Transcript,
   WhisperModel,
-} from "./types";
+} from "@be-voiced/engine/types";
 
 /**
  * Checked on call, not at import: the dev QA harness installs Tauri's IPC mocks after this module

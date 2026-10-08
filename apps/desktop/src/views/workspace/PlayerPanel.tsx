@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import { MediaElement, Waveform } from "../../components/media";
 import { IconButton } from "../../components/ui";
 import { usePeaks } from "../../lib/actions";
-import { clock } from "../../lib/format";
+import { clock } from "@be-voiced/engine/format";
 import { player, usePlayerState, usePlayerTime } from "../../lib/player";
 import { useProject } from "../../store/project";
 

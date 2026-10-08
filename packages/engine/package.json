@@ -1,0 +1,10 @@
+{
+  "name": "@be-voiced/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Transcript model, moment finder, answer engine and caption renderer. No platform code: runs in the desktop app, the web app and the server worker alike.",
+  "exports": {
+    "./*": "./src/*.ts"
+  }
+}

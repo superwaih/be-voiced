@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { errorMessage, ipc } from "../lib/ipc";
-import type { AskEntry, ChatMessage, Project, ProjectMeta } from "../lib/types";
+import type { AskEntry, ChatMessage, Project, ProjectMeta } from "@be-voiced/engine/types";
 import { useApp } from "./app";
 
 /**

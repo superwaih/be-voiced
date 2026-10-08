@@ -1,7 +1,7 @@
 import { CaretLineLeft, CaretLineRight, ChatCircleDots, ClosedCaptioning, GearSix, House, MoonStars, SquaresFour, Sun, TextAlignLeft } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
-import { duration } from "../lib/format";
+import { duration } from "@be-voiced/engine/format";
 import { useApp, type View } from "../store/app";
 import { useProject } from "../store/project";
 import { ProjectCover } from "./Covers";

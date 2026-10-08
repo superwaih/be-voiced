@@ -17,7 +17,7 @@ import {
 import { Fragment, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Button, EmptyState, IconButton, Menu, Popover, Progress, TextInput } from "../../components/ui";
 import { clipFromSelection } from "../../lib/actions";
-import { clock, duration as fmtDuration } from "../../lib/format";
+import { clock, duration as fmtDuration } from "@be-voiced/engine/format";
 import { player, usePlayerTime } from "../../lib/player";
 import {
   flattenWords,
@@ -27,8 +27,8 @@ import {
   segmentText,
   speakerTalkTime,
   wordAt,
-} from "../../lib/transcript";
-import type { Segment, Topic, Transcript } from "../../lib/types";
+} from "@be-voiced/engine/transcript";
+import type { Segment, Topic, Transcript } from "@be-voiced/engine/types";
 import { useApp } from "../../store/app";
 import { useProject } from "../../store/project";
 

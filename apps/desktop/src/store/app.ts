@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { AppError, errorMessage, ipc, isCancelled, newJobId, onJobProgress } from "../lib/ipc";
-import type { KeyStatus, ProjectMeta, Settings, SidecarStatus, WhisperModel } from "../lib/types";
+import type { KeyStatus, ProjectMeta, Settings, SidecarStatus, WhisperModel } from "@be-voiced/engine/types";
 
 export type View = "home" | "projects" | "transcripts" | "captions" | "ask" | "settings" | "project";
 

@@ -2,13 +2,13 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { reportError, useApp } from "../store/app";
 import { usePeaks } from "../store/peaks";
 import { useProject } from "../store/project";
-import { buildAss, groupCaptions, toSrt, toVtt, transcriptSubtitles, transcriptText } from "./captions";
-import { joinPath, safeFileName } from "./format";
+import { buildAss, groupCaptions, toSrt, toVtt, transcriptSubtitles, transcriptText } from "@be-voiced/engine/captions";
+import { joinPath, safeFileName } from "@be-voiced/engine/format";
 import { errorMessage, ipc, isCancelled } from "./ipc";
-import { findMoments as findMomentsLocal } from "./moments";
-import { applyAnalysis, newClip, newProject, projectMeta, suggestionCount } from "./project";
-import { buildUnits, flattenWords, snapToSentences, wordsInRange } from "./transcript";
-import type { Clip, ExportKind, ExportRecord, LinkInfo, Project, Resolution, TextIntelligence } from "./types";
+import { findMoments as findMomentsLocal } from "@be-voiced/engine/moments";
+import { applyAnalysis, newClip, newProject, projectMeta, suggestionCount } from "@be-voiced/engine/project";
+import { buildUnits, flattenWords, snapToSentences, wordsInRange } from "@be-voiced/engine/transcript";
+import type { Clip, ExportKind, ExportRecord, LinkInfo, Project, Resolution, TextIntelligence } from "@be-voiced/engine/types";
 
 export const MEDIA_EXTENSIONS = ["mp4", "mov", "mkv", "webm", "mp3", "wav", "m4a"];
 

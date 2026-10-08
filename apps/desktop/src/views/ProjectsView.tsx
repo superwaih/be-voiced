@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { ProjectCover } from "../components/Covers";
 import { Button, EmptyState, MenuButton, Segmented, TextInput } from "../components/ui";
 import { openProject } from "../lib/actions";
-import { bytes, duration, relativeDate } from "../lib/format";
+import { bytes, duration, relativeDate } from "@be-voiced/engine/format";
 import { ipc } from "../lib/ipc";
-import type { ProjectMeta } from "../lib/types";
+import type { ProjectMeta } from "@be-voiced/engine/types";
 import { useApp } from "../store/app";
 import { chooseAndImport, nextStep, rise } from "./HomeView";
 

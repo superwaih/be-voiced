@@ -6,10 +6,10 @@
  * never ships in a build. The sample conversation below is invented demo content.
  */
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import { defaultCaptionStyle } from "../lib/captions";
-import { projectMeta } from "../lib/project";
+import { defaultCaptionStyle } from "@be-voiced/engine/captions";
+import { projectMeta } from "@be-voiced/engine/project";
 import { useApp } from "../store/app";
-import type { AskEntry, Clip, Project, Segment, Settings } from "../lib/types";
+import type { AskEntry, Clip, Project, Segment, Settings } from "@be-voiced/engine/types";
 
 const LINES: [string, string][] = [
   ["S0", "Welcome back. Today I'm talking with Priya Raman, who spent nine years running logistics for a grocery chain before starting her own cold storage company. Priya, thanks for coming on."],

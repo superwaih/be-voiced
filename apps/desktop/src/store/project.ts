@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { errorMessage, ipc } from "../lib/ipc";
-import { projectMeta } from "../lib/project";
-import type { Clip, Project } from "../lib/types";
+import { projectMeta } from "@be-voiced/engine/project";
+import type { Clip, Project } from "@be-voiced/engine/types";
 import { useApp } from "./app";
 import { usePeaks } from "./peaks";
 

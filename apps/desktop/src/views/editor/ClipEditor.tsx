@@ -3,11 +3,11 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import { MediaElement, Waveform } from "../../components/media";
 import { Button, IconButton, InlineEdit, Segmented } from "../../components/ui";
 import { ensurePeaks, outputFrame } from "../../lib/actions";
-import { captionAnchor, groupCaptions, previewVars, type CaptionGroup } from "../../lib/captions";
-import { clock } from "../../lib/format";
+import { captionAnchor, groupCaptions, previewVars, type CaptionGroup } from "@be-voiced/engine/captions";
+import { clock } from "@be-voiced/engine/format";
 import { player, usePlayerState, usePlayerTime } from "../../lib/player";
-import { flattenWords, snapToWord, wordsInRange, type FlatWord } from "../../lib/transcript";
-import type { AspectRatio, CaptionStyle, Clip } from "../../lib/types";
+import { flattenWords, snapToWord, wordsInRange, type FlatWord } from "@be-voiced/engine/transcript";
+import type { AspectRatio, CaptionStyle, Clip } from "@be-voiced/engine/types";
 import { usePeaks } from "../../store/peaks";
 import { useProject } from "../../store/project";
 import { openWorkspace } from "../ProjectView";

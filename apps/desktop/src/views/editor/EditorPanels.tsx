@@ -3,13 +3,13 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ColorInput, Field, IconButton, Modal, Progress, Segmented, Select, Slider, Switch, TextInput } from "../../components/ui";
 import { exportClipCaptions, exportClipVideo, outputFrame } from "../../lib/actions";
-import { CAPTION_FONTS, CAPTION_PRESETS, previewVars } from "../../lib/captions";
-import { bytes, clock, relativeDate } from "../../lib/format";
+import { CAPTION_FONTS, CAPTION_PRESETS, previewVars } from "@be-voiced/engine/captions";
+import { bytes, clock, relativeDate } from "@be-voiced/engine/format";
 import { ipc } from "../../lib/ipc";
 import { player, usePlayerTime } from "../../lib/player";
-import { CATEGORY_LABEL } from "../../lib/project";
-import { buildUnits, nudgeBySentence, wordAt, type FlatWord } from "../../lib/transcript";
-import type { CaptionStyle, Clip, ExportRecord, Resolution } from "../../lib/types";
+import { CATEGORY_LABEL } from "@be-voiced/engine/project";
+import { buildUnits, nudgeBySentence, wordAt, type FlatWord } from "@be-voiced/engine/transcript";
+import type { CaptionStyle, Clip, ExportRecord, Resolution } from "@be-voiced/engine/types";
 import { reportError, useApp } from "../../store/app";
 import { useProject } from "../../store/project";
 

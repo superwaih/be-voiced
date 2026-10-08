@@ -1,0 +1,15 @@
+{
+  "name": "be-voiced",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Find the parts of long conversations worth publishing. Desktop app, web app and the service behind them.",
+  "scripts": {
+    "dev": "pnpm -C apps/desktop dev",
+    "build": "pnpm -C apps/desktop build",
+    "app:dev": "pnpm -C apps/desktop app:dev",
+    "app:build": "pnpm -C apps/desktop app:build",
+    "sidecars": "pnpm -C apps/desktop sidecars",
+    "typecheck": "pnpm -r --no-bail exec tsc --noEmit"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

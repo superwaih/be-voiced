@@ -1,6 +1,6 @@
 import { X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { clock } from "../lib/format";
+import { clock } from "@be-voiced/engine/format";
 import { useApp, type JobState } from "../store/app";
 import { Button, Progress } from "./ui";
 

@@ -4,10 +4,10 @@ import { ClipCover, ProjectCover } from "../components/Covers";
 import { WaveArt } from "../components/WaveArt";
 import { Button } from "../components/ui";
 import { importFile, openProject, pickMediaFile } from "../lib/actions";
-import { clock, duration, relativeDate } from "../lib/format";
-import { CATEGORY_LABEL } from "../lib/project";
-import { unpackWave } from "../lib/wave";
-import type { ClipMeta, ProjectMeta } from "../lib/types";
+import { clock, duration, relativeDate } from "@be-voiced/engine/format";
+import { CATEGORY_LABEL } from "@be-voiced/engine/project";
+import { unpackWave } from "@be-voiced/engine/wave";
+import type { ClipMeta, ProjectMeta } from "@be-voiced/engine/types";
 import { useApp } from "../store/app";
 
 export function nextStep(m: ProjectMeta): string {

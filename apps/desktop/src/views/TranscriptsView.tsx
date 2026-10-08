@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ProjectCover } from "../components/Covers";
 import { Button, EmptyState, TextInput } from "../components/ui";
 import { openProject } from "../lib/actions";
-import { duration, relativeDate } from "../lib/format";
+import { duration, relativeDate } from "@be-voiced/engine/format";
 import { useApp } from "../store/app";
 import { chooseAndImport, rise } from "./HomeView";
 

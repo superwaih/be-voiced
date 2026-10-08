@@ -24,8 +24,12 @@ dist-ssr
 *.sw?
 
 # Sidecar binaries are fetched/built per platform with `pnpm sidecars`
-src-tauri/binaries/*
-!src-tauri/binaries/README.md
+apps/desktop/src-tauri/binaries/*
+!apps/desktop/src-tauri/binaries/README.md
 
 # whisper.cpp checkout for the sidecar build
 .cache
+
+# Build output
+dist
+apps/*/dist

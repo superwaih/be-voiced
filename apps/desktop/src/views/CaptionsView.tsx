@@ -14,11 +14,11 @@ import {
   pickMediaFile,
   usePeaks,
 } from "../lib/actions";
-import { captionAnchor, defaultCaptionStyle } from "../lib/captions";
-import { clock, duration, relativeDate, safeFileName } from "../lib/format";
+import { captionAnchor, defaultCaptionStyle } from "@be-voiced/engine/captions";
+import { clock, duration, relativeDate, safeFileName } from "@be-voiced/engine/format";
 import { player, usePlayerTime } from "../lib/player";
-import { flattenWords } from "../lib/transcript";
-import type { AspectRatio, CaptionStyle, Clip, ProjectMeta, Project, Resolution } from "../lib/types";
+import { flattenWords } from "@be-voiced/engine/transcript";
+import type { AspectRatio, CaptionStyle, Clip, ProjectMeta, Project, Resolution } from "@be-voiced/engine/types";
 import { useApp } from "../store/app";
 import { useProject } from "../store/project";
 import { CaptionOverlay } from "./editor/ClipEditor";

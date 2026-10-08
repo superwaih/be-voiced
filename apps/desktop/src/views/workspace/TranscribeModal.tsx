@@ -2,7 +2,7 @@ import { CheckCircle, CloudArrowUp, HardDrives, WarningCircle } from "@phosphor-
 import { useState, type ReactNode } from "react";
 import { Button, Field, Modal, Select } from "../../components/ui";
 import { transcribe } from "../../lib/actions";
-import { duration } from "../../lib/format";
+import { duration } from "@be-voiced/engine/format";
 import { useApp } from "../../store/app";
 import { useProject } from "../../store/project";
 import { DEEPGRAM_LANGUAGES, WHISPER_LANGUAGES } from "../SettingsView";

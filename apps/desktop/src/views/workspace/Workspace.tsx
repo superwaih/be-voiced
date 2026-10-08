@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton, InlineEdit, MenuButton } from "../../components/ui";
 import { ensurePeaks, exportTranscript, findMoments, relinkSource } from "../../lib/actions";
-import { bytes, duration } from "../../lib/format";
+import { bytes, duration } from "@be-voiced/engine/format";
 import { ipc } from "../../lib/ipc";
 import { useApp } from "../../store/app";
 import { useProject } from "../../store/project";
