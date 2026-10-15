@@ -86,7 +86,7 @@ export const STOPWORDS = new Set(
 );
 
 /** Words that carry little meaning as topic labels even when frequent. */
-const WEAK_LABEL_WORDS = new Set(
+export const WEAK_LABEL_WORDS = new Set(
   (
     "away along late early goes went come came comes coming find found thanks thank hardest harder hard easy big small good bad great little long short new old first last next year years time times day days week weeks month months minute minutes hour hours part start started starting started end ended ending talk talking talked tell told ask asked question questions answer lot lots kind sort point case fact idea sense look looked looking give gave given feel felt keep kept put puts call called try tried trying work worked working happen happened happens change changed changes back fine sure exactly fair great literally obviously pretty whole able else ever every many less least most much still yet already almost enough quite rather truly across around because since while whether"
   ).split(" "),

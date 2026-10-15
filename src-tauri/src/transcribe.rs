@@ -71,7 +71,7 @@ async fn local(
     .await?;
     job.check()?;
 
-    let result = whisper::transcribe(job, &model_path, &wav, &req.language, english_only, (0.08, 0.98)).await;
+    let result = whisper::transcribe(job, &req.whisper_model, &model_path, &wav, &req.language, english_only, (0.08, 0.98)).await;
     let _ = tokio::fs::remove_file(&wav).await;
     let (words, detected) = result?;
     if words.is_empty() {
@@ -82,7 +82,7 @@ async fn local(
         "whisper",
         &req.whisper_model,
         detected.or_else(|| (req.language != "auto").then(|| req.language.clone())),
-        false,
+        whisper::marks_speaker_turns(&req.whisper_model),
         words,
     ))
 }

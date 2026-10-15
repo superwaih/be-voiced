@@ -3,6 +3,7 @@ mod export;
 mod history;
 mod intelligence;
 mod jobs;
+mod llm;
 mod links;
 mod media;
 mod paths;
@@ -50,6 +51,8 @@ pub fn run() {
             whisper::delete_whisper_model,
             transcribe::transcribe,
             intelligence::analyze_text,
+            llm::summarize_with_llm,
+            llm::answer_with_llm,
             export::export_clip,
             export::write_text_file,
             export::path_exists,

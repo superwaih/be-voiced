@@ -184,6 +184,22 @@ export function transcriptSubtitles(t: Transcript, format: "srt" | "vtt"): strin
   return format === "srt" ? toSrt(cues) : toVtt(cues);
 }
 
+/** The words alone, one paragraph per turn: what you want when pasting into a document. */
+export function transcriptPlain(t: Transcript): string {
+  return t.segments.map((seg) => seg.words.map((w) => w.text).join(" ")).join("\n\n");
+}
+
+/** Who said what, without timestamps. Reads like a script. */
+export function transcriptWithSpeakers(t: Transcript): string {
+  const names = new Map(t.speakers.map((s) => [s.id, s.name]));
+  const lines: string[] = [];
+  for (const seg of t.segments) {
+    lines.push(`${names.get(seg.speaker) ?? seg.speaker}: ${seg.words.map((w) => w.text).join(" ")}`);
+    lines.push("");
+  }
+  return lines.join("\n").trimEnd();
+}
+
 export function transcriptText(t: Transcript, title: string): string {
   const names = new Map(t.speakers.map((s) => [s.id, s.name]));
   const lines = [title, ""];

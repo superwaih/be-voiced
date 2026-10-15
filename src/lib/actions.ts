@@ -3,7 +3,7 @@ import { reportError, useApp } from "../store/app";
 import { usePeaks } from "../store/peaks";
 import { useProject } from "../store/project";
 import { buildAss, groupCaptions, toSrt, toVtt, transcriptSubtitles, transcriptText } from "./captions";
-import { joinPath, safeFileName } from "./format";
+import { clock, joinPath, safeFileName } from "./format";
 import { errorMessage, ipc, isCancelled } from "./ipc";
 import { findMoments as findMomentsLocal } from "./moments";
 import { applyAnalysis, newClip, newProject, projectMeta, suggestionCount } from "./project";
@@ -260,6 +260,53 @@ export async function transcribe(engine: "local" | "cloud"): Promise<boolean> {
     return true;
   } catch (err) {
     if (!isCancelled(err)) reportError("Transcription failed", err);
+    return false;
+  }
+}
+
+// --- Summary ----------------------------------------------------------------------------------
+
+/** One line per turn with its timestamp, which is what the model cites back. */
+function timestampedTranscript(project: Project): string {
+  const t = project.transcript;
+  if (!t) return "";
+  const names = new Map(t.speakers.map((s) => [s.id, s.name]));
+  return t.segments
+    .map((seg) => `[${clock(seg.start)}] ${names.get(seg.speaker) ?? seg.speaker}: ${seg.words.map((w) => w.text).join(" ")}`)
+    .join("\n");
+}
+
+/**
+ * Ask DeepSeek for a summary and keep it with the project, so a recording is summarised once
+ * rather than on every visit to the tab. Without a key the interface falls back to the summary the
+ * app writes itself, and nothing here runs.
+ */
+export async function writeSummary(): Promise<boolean> {
+  const project = useProject.getState().project;
+  const app = useApp.getState();
+  if (!project?.transcript) return false;
+  if (!app.keys.deepseek) {
+    app.toast({ tone: "error", title: "No DeepSeek key", body: "Add one in Settings to have summaries written for you." });
+    return false;
+  }
+  try {
+    const summary = await app.runJob(
+      { kind: "analyze", label: "Writing the summary", projectId: project.id, stage: "Reading the transcript" },
+      (jobId) =>
+        ipc.summarizeWithLlm({
+          jobId,
+          transcript: timestampedTranscript(project),
+          title: project.name,
+          duration: project.source.duration,
+        }),
+    );
+    useProject.getState().update(
+      (p) => ({ ...p, aiSummary: { ...summary, createdAt: new Date().toISOString() } }),
+      { history: false },
+    );
+    return true;
+  } catch (err) {
+    if (!isCancelled(err)) reportError("Could not write the summary", err);
     return false;
   }
 }

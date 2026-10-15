@@ -221,13 +221,14 @@ mockIPC(
       case "default_export_dir":
         return settings.exportDir;
       case "api_key_status":
-        return { deepgram: null };
+        return { deepgram: null, deepseek: new URLSearchParams(location.search).has("llm") ? "ends in 7f2a" : null };
       case "list_whisper_models":
         return [
-          { id: "tiny.en", label: "Tiny (English)", size: "75 MB", englishOnly: true, note: "Fastest, rough drafts", installed: false },
-          { id: "base.en", label: "Base (English)", size: "142 MB", englishOnly: true, note: "Quick and reliable for clear audio", installed: true },
-          { id: "small.en", label: "Small (English)", size: "466 MB", englishOnly: true, note: "Better with crosstalk and accents", installed: false },
-          { id: "large-v3-turbo", label: "Large v3 Turbo", size: "1.5 GB", englishOnly: false, note: "Most accurate, slowest", installed: false },
+          { id: "base.en", label: "Everyday", size: "142 MB", englishOnly: true, note: "Quick and accurate on clear English. Start here.", technical: "Whisper base.en", recommended: true, speakerTurns: false, installed: true },
+          { id: "small.en-tdrz", label: "Separate the speakers", size: "465 MB", englishOnly: true, note: "Splits the transcript each time the voice changes. English only, and it marks that someone new is talking rather than who.", technical: "Whisper small.en with tinydiarize", recommended: false, speakerTurns: true, installed: false },
+          { id: "small.en", label: "Harder recordings", size: "466 MB", englishOnly: true, note: "Slower, but copes better with accents, people talking over each other and poor audio. English only.", technical: "Whisper small.en", recommended: false, speakerTurns: false, installed: false },
+          { id: "tiny.en", label: "Quick draft", size: "75 MB", englishOnly: true, note: "The fastest. Rough, but good enough to search and skim. English only.", technical: "Whisper tiny.en", recommended: false, speakerTurns: false, installed: false },
+          { id: "large-v3-turbo", label: "Most accurate", size: "1.5 GB", englishOnly: false, note: "The best transcript this computer can produce, and the slowest. Any language.", technical: "Whisper large-v3-turbo", recommended: false, speakerTurns: false, installed: false },
         ];
       case "list_projects":
         return [projectMeta(project, Uint8Array.from(peaks(project.source.duration))), otherMeta];
@@ -256,6 +257,20 @@ mockIPC(
       case "clear_ask_history":
         askHistory = [];
         return null;
+      case "summarize_with_llm":
+        return {
+          model: "deepseek-chat",
+          overview:
+            "Priya Raman left a logistics job to build cold-chain monitoring after noticing that most produce spoilage happened while pallets waited at loading docks, not in transit. She argues founders should pick problems narrow enough to explain in a sentence, and describes winning her first customer by standing on their dock for a week with a thermometer. The conversation ends on what she got wrong: the hard part was earning a night-shift supervisor's trust, not the hardware.",
+          subjects: ["cold chain monitoring", "dock dwell time", "picking a narrow problem", "winning the first customer"],
+          points: [
+            { at: 41, text: "Waiting at the dock, not spoilage in transit, is where the produce is lost." },
+            { at: 101, text: "A pitch that needs a whole industry to explain is too big to fix." },
+            { at: 144, text: "She won the first customer by measuring their dock herself for a week." },
+            { at: 218, text: "Sites typically cut dwell time by about a third in the first ninety days." },
+            { at: 316, text: "The hardest part was trust, not hardware." },
+          ],
+        };
       case "probe_link":
         return {
           resolver: "yt-dlp",

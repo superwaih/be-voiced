@@ -4,7 +4,7 @@ import type { KeyStatus, ProjectMeta, Settings, SidecarStatus, WhisperModel } fr
 
 export type View = "home" | "projects" | "transcripts" | "captions" | "ask" | "settings" | "project";
 
-export type JobKind = "import" | "transcribe" | "analyze" | "export" | "peaks" | "proxy" | "model";
+export type JobKind = "import" | "transcribe" | "analyze" | "answer" | "export" | "peaks" | "proxy" | "model";
 
 export interface JobState {
   id: string;
@@ -71,7 +71,7 @@ export const useApp = create<AppStore>((set, get) => ({
   booted: false,
   view: "home",
   settings: DEFAULT_SETTINGS,
-  keys: { deepgram: null },
+  keys: { deepgram: null, deepseek: null },
   sidecars: null,
   models: [],
   library: [],

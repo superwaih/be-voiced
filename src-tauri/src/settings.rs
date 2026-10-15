@@ -78,16 +78,23 @@ const SERVICE: &str = "org.buildsystems.bevoiced";
 
 fn entry(provider: &str) -> AppResult<keyring::Entry> {
     match provider {
-        "deepgram" => keyring::Entry::new(SERVICE, provider)
+        "deepgram" | "deepseek" => keyring::Entry::new(SERVICE, provider)
             .map_err(|e| AppError::msg(format!("Credential store unavailable: {e}"))),
-        _ => Err(AppError::msg("Unknown provider")),
+        other => Err(AppError::msg(format!("Unknown provider {other}. This build predates it; rebuild the app."))),
+    }
+}
+
+fn provider_name(provider: &str) -> &'static str {
+    match provider {
+        "deepseek" => "DeepSeek",
+        _ => "Deepgram",
     }
 }
 
 pub fn get_key(provider: &str) -> AppResult<String> {
     match entry(provider)?.get_password() {
         Ok(k) if !k.trim().is_empty() => Ok(k),
-        Ok(_) | Err(keyring::Error::NoEntry) => Err(AppError::MissingKey("Deepgram".into())),
+        Ok(_) | Err(keyring::Error::NoEntry) => Err(AppError::MissingKey(provider_name(provider).into())),
         Err(e) => Err(AppError::msg(format!("Could not read API key: {e}"))),
     }
 }
@@ -96,6 +103,7 @@ pub fn get_key(provider: &str) -> AppResult<String> {
 #[serde(rename_all = "camelCase")]
 pub struct KeyStatus {
     pub deepgram: Option<String>,
+    pub deepseek: Option<String>,
 }
 
 fn masked(provider: &str) -> Option<String> {
@@ -109,6 +117,7 @@ fn masked(provider: &str) -> Option<String> {
 pub fn api_key_status() -> KeyStatus {
     KeyStatus {
         deepgram: masked("deepgram"),
+        deepseek: masked("deepseek"),
     }
 }
 
@@ -137,11 +146,20 @@ pub async fn verify_api_key(provider: String) -> AppResult<()> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(20))
         .build()?;
-    let resp = client
-        .get("https://api.deepgram.com/v1/projects")
-        .header("Authorization", format!("Token {key}"))
-        .send()
-        .await?;
+    // Both are a plain authenticated GET; only the address and the header style differ.
+    let resp = if provider == "deepseek" {
+        client
+            .get("https://api.deepseek.com/user/balance")
+            .header("Authorization", format!("Bearer {key}"))
+            .send()
+            .await?
+    } else {
+        client
+            .get("https://api.deepgram.com/v1/projects")
+            .header("Authorization", format!("Token {key}"))
+            .send()
+            .await?
+    };
     let status = resp.status();
     if status.is_success() {
         Ok(())

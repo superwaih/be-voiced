@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  AiSummary,
   AppErrorPayload,
   AskEntry,
   AspectRatio,
@@ -23,6 +24,8 @@ import type {
  * Checked on call, not at import: the dev QA harness installs Tauri's IPC mocks after this module
  * is first loaded, and a value frozen at import time would miss them.
  */
+export type KeyProvider = "deepgram" | "deepseek";
+
 export const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export class AppError extends Error {
@@ -69,9 +72,9 @@ export const ipc = {
   saveSettings: (settings: Settings) => call<void>("save_settings", { settings }),
   defaultExportDir: () => call<string>("default_export_dir"),
   keyStatus: () => call<KeyStatus>("api_key_status"),
-  setKey: (provider: "deepgram", key: string) => call<void>("set_api_key", { provider, key }),
-  deleteKey: (provider: "deepgram") => call<void>("delete_api_key", { provider }),
-  verifyKey: (provider: "deepgram") => call<void>("verify_api_key", { provider }),
+  setKey: (provider: KeyProvider, key: string) => call<void>("set_api_key", { provider, key }),
+  deleteKey: (provider: KeyProvider) => call<void>("delete_api_key", { provider }),
+  verifyKey: (provider: KeyProvider) => call<void>("verify_api_key", { provider }),
 
   importMedia: (path: string) => call<ImportedMedia>("import_media", { path }),
   probeLink: (url: string) => call<LinkInfo>("probe_link", { url }),
@@ -107,6 +110,18 @@ export const ipc = {
     whisperModel: string;
     language: string;
   }) => call<Transcript>("transcribe", { req }),
+
+  summarizeWithLlm: (req: { jobId: string; transcript: string; title: string; duration: number }) =>
+    call<Omit<AiSummary, "createdAt">>("summarize_with_llm", { req }),
+
+  answerWithLlm: (req: {
+    jobId: string;
+    question: string;
+    context: string;
+    title: string;
+    duration: number;
+    history: { role: string; text: string }[];
+  }) => call<{ model: string; answer: string; points: { at: number; text: string }[] }>("answer_with_llm", { req }),
 
   analyzeText: (req: { jobId: string; text: string; language: string }) => call<TextIntelligence>("analyze_text", { req }),
 

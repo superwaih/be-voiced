@@ -11,6 +11,8 @@
 import { findMoments } from "./moments";
 import { STOPWORDS, tokenize } from "./moments";
 import { clock } from "./format";
+import { errorMessage, ipc } from "./ipc";
+import { summarize } from "./summary";
 import { buildUnits, speakerTalkTime, type Unit } from "./transcript";
 import type { AnswerEngine, Citation, Project, TextIntelligence, Transcript } from "./types";
 
@@ -18,6 +20,10 @@ export interface AskContext {
   project: Project;
   transcript: Transcript;
   intel: TextIntelligence | null;
+  /** Earlier turns, so a follow-up like "what about the second one?" can be understood. */
+  history?: { role: string; text: string }[];
+  /** Set when the caller runs the question as a job, which is what makes it cancellable. */
+  jobId?: string;
 }
 
 export interface AskResult {
@@ -241,36 +247,13 @@ function answerMoments(ctx: AskContext): AskResult {
   };
 }
 
-function answerSummary(ctx: AskContext, units: Unit[]): AskResult {
-  const topics = ctx.project.topics;
-  if (topics.length) {
-    return {
-      engine: "local",
-      text: `The conversation moves through ${topics.length} ${topics.length === 1 ? "topic" : "topics"}.`,
-      citations: topics.map((t) => ({
-        start: t.ranges[0]?.start ?? 0,
-        end: t.ranges[0]?.end ?? 0,
-        speaker: "",
-        label: t.name,
-        text: t.summary,
-      })),
-    };
-  }
-  // No analysis yet: take the strongest sentence from each quarter of the recording.
-  const duration = ctx.project.source.duration || units[units.length - 1]?.end || 0;
-  const quarters: Citation[] = [];
-  for (let i = 0; i < 4; i++) {
-    const from = (duration / 4) * i;
-    const to = (duration / 4) * (i + 1);
-    const slice = units.filter((u) => u.start >= from && u.start < to && u.text.split(/\s+/).length > 9);
-    const pick = slice.sort((a, b) => tokenize(b.text).length - tokenize(a.text).length)[0];
-    if (pick) quarters.push({ start: pick.start, end: pick.end, speaker: pick.speaker, text: pick.text });
-  }
+function answerSummary(ctx: AskContext): AskResult {
+  const summary = summarize(ctx.transcript, ctx.project.source.duration, 5);
+  if (!summary) return { engine: "local", text: "There is not enough transcript here to summarise.", citations: [] };
   return {
     engine: "local",
-    text: "Run Find moments for a proper read of this conversation. Until then, here is the shape of it, a line from each quarter.",
-    citations: quarters,
-    note: "Topics and summaries get much better once the recording has been analysed.",
+    text: summary.lead,
+    citations: summary.points.map((p) => ({ start: p.start, end: p.end, speaker: p.speaker, text: p.text })),
   };
 }
 
@@ -319,7 +302,7 @@ export const localEngine: Engine = {
       case "moments":
         return answerMoments(ctx);
       case "summary":
-        return answerSummary(ctx, units);
+        return answerSummary(ctx);
       case "speakers":
         return answerSpeakers(ctx);
       case "stats":
@@ -332,16 +315,96 @@ export const localEngine: Engine = {
   },
 };
 
-/** Engines in preference order. Cloud engines append themselves here when a key is saved. */
-export function engines(): Engine[] {
-  return [localEngine];
+/** How much transcript goes to the model whole before passages are selected instead. */
+const WHOLE_TRANSCRIPT_LIMIT = 24_000;
+
+/** Timestamped lines, which is the form the model is asked to cite back. */
+function linesFor(units: Unit[]): string {
+  return units.map((u) => `[${clock(u.start)}] ${u.speaker}: ${u.text}`).join("\n");
+}
+
+/**
+ * What the model is allowed to see. A short recording goes up whole; a long one is narrowed to the
+ * passages that match the question, with their neighbours for context, so a two-hour transcript
+ * costs about the same as a two-minute one and the model is not asked to skim.
+ */
+export function contextFor(question: string, units: Unit[]): string {
+  const whole = linesFor(units);
+  if (whole.length <= WHOLE_TRANSCRIPT_LIMIT) return whole;
+
+  const hits = retrieve(units, question).slice(0, 8);
+  const keep = new Set<number>();
+  for (const hit of hits) {
+    for (let i = Math.max(0, hit.index - 2); i <= Math.min(units.length - 1, hit.index + 2); i++) keep.add(i);
+  }
+  // Always include the opening and the close: they frame what the rest is about.
+  for (let i = 0; i < Math.min(4, units.length); i++) keep.add(i);
+  for (let i = Math.max(0, units.length - 3); i < units.length; i++) keep.add(i);
+
+  const ordered = [...keep].sort((a, b) => a - b);
+  const out: string[] = [];
+  // Starts at -1 so the first kept line is not preceded by a gap marker.
+  let previous = -1;
+  for (const i of ordered) {
+    if (i > previous + 1) out.push("[...]");
+    out.push(`[${clock(units[i].start)}] ${units[i].speaker}: ${units[i].text}`);
+    previous = i;
+  }
+  return out.join("\n");
+}
+
+/** DeepSeek writes the answer; the transcript it is given comes from the local retriever. */
+export const deepseekEngine: Engine = {
+  id: "deepseek",
+  label: "DeepSeek",
+  description: "Answers in prose, follows up, and reasons across the whole recording. Uses your key.",
+  available: true,
+  async answer(question, ctx) {
+    const units = buildUnits(ctx.transcript);
+    if (!units.length) return { engine: "deepseek", text: "This recording has no transcript yet.", citations: [] };
+
+    const reply = await ipc.answerWithLlm({
+      jobId: ctx.jobId ?? crypto.randomUUID(),
+      question,
+      context: contextFor(question, units),
+      title: ctx.project.name,
+      duration: ctx.project.source.duration,
+      history: ctx.history ?? [],
+    });
+
+    // Give every cited moment the words that were actually said there, so the chat still quotes
+    // the recording rather than the model's paraphrase of it.
+    const citations: Citation[] = reply.points.map((p) => {
+      const at = units.findIndex((u) => u.end > p.at);
+      const unit = units[at >= 0 ? at : units.length - 1];
+      return {
+        start: unit?.start ?? p.at,
+        end: unit?.end ?? p.at,
+        speaker: unit?.speaker ?? "",
+        label: p.text || undefined,
+        text: unit?.text ?? "",
+      };
+    });
+    return { engine: "deepseek", text: reply.answer, citations };
+  },
+};
+
+/** Engines in preference order. The model is used when a key is saved, the local one otherwise. */
+export function engines(hasDeepseek = false): Engine[] {
+  return hasDeepseek ? [deepseekEngine, localEngine] : [localEngine];
 }
 
 export async function ask(question: string, ctx: AskContext, preferred: AnswerEngine = "local"): Promise<AskResult> {
-  const all = engines();
-  const engine = all.find((e) => e.id === preferred && e.available) ?? all[0];
-  const result = await engine.answer(question, ctx);
-  return result;
+  const all = engines(preferred === "deepseek");
+  const engine = all.find((e) => e.id === preferred && e.available) ?? localEngine;
+  try {
+    return await engine.answer(question, ctx);
+  } catch (err) {
+    if (engine.id === "local") throw err;
+    // A failed call should not lose the question: answer from the transcript and say why.
+    const fallback = await localEngine.answer(question, ctx);
+    return { ...fallback, note: `${errorMessage(err)} Answered from the transcript instead.` };
+  }
 }
 
 /** Starter questions offered when a recording opens, tuned to what the project already has. */

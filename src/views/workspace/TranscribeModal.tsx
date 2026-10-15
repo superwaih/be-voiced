@@ -38,7 +38,18 @@ function Option({
   );
 }
 
-export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone?: () => void }) {
+export function TranscribeModal({
+  open,
+  onClose,
+  onDone,
+  onStart,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDone?: () => void;
+  /** Fires as the run begins, for anything derived from the old transcript. */
+  onStart?: () => void;
+}) {
   const project = useProject((s) => s.project)!;
   const settings = useApp((s) => s.settings);
   const models = useApp((s) => s.models);
@@ -49,6 +60,9 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
   const [engine, setEngine] = useState<"local" | "cloud">(settings.transcriptionMode);
 
   const installed = models.filter((m) => m.installed);
+  const turnsModel = !!models.find((m) => m.id === settings.whisperModel)?.speakerTurns;
+  const speakersModel = models.find((m) => m.speakerTurns);
+  const chosen = installed.find((m) => m.id === settings.whisperModel);
   const modelOk = installed.some((m) => m.id === settings.whisperModel);
   const localReady = !!sidecars?.whisper && modelOk;
   const cloudReady = !!keys.deepgram;
@@ -57,6 +71,7 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
 
   const start = () => {
     onClose();
+    onStart?.();
     void updateSettings({ transcriptionMode: engine });
     // onDone lets a caller chain the next step, like Clips running the moment finder straight after.
     void transcribe(engine).then((ok) => ok && onDone?.());
@@ -98,7 +113,7 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
           onSelect={() => setEngine("local")}
           icon={<HardDrives />}
           title="Local with Whisper"
-          body="Private and offline. Runs on this computer, so long files take a while. One speaker label."
+          body="Private and offline. Nothing is uploaded, and long recordings take a while."
           status={
             !sidecars?.whisper
               ? { ok: false, text: "whisper.cpp is missing from this build" }
@@ -120,11 +135,15 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
       <div className="modal-fields">
         {engine === "local" ? (
           <>
-            <Field label="Model">
+            <Field label="How to transcribe" hint={chosen?.note}>
               <Select
                 value={modelOk ? settings.whisperModel : ""}
                 disabled={!installed.length}
-                options={installed.length ? installed.map((m) => ({ value: m.id, label: `${m.label}, ${m.size}` })) : [{ value: "", label: "No models downloaded" }]}
+                options={
+                  installed.length
+                    ? installed.map((m) => ({ value: m.id, label: m.recommended ? `${m.label}, recommended` : m.label }))
+                    : [{ value: "", label: "Nothing downloaded yet" }]
+                }
                 onChange={(v) => v && void updateSettings({ whisperModel: v })}
               />
             </Field>
@@ -138,6 +157,16 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
           </Field>
         )}
       </div>
+
+      {engine === "local" && !turnsModel && (
+        <p className="faint modal-hint">
+          {speakersModel?.installed
+            ? `Only ${speakersModel.label} separates speakers. Choose it above to split the transcript by voice.`
+            : speakersModel
+              ? `No Whisper model here tells voices apart except ${speakersModel.label} (${speakersModel.size}), which marks where the speaker changes. Download it in Settings, or use Deepgram.`
+              : "Whisper does not separate speakers. Use Deepgram for speaker labels."}
+        </p>
+      )}
     </Modal>
   );
 }

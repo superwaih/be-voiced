@@ -1,6 +1,7 @@
 import {
   ArrowClockwise,
   ArrowCounterClockwise,
+  Copy,
   DotsThree,
   Export,
   FolderOpen,
@@ -12,6 +13,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Button, IconButton, InlineEdit, MenuButton } from "../../components/ui";
 import { ensurePeaks, exportTranscript, findMoments, relinkSource } from "../../lib/actions";
+import { transcriptWithSpeakers } from "../../lib/captions";
+import { copyWithToast } from "../../lib/clipboard";
 import { bytes, duration } from "../../lib/format";
 import { ipc } from "../../lib/ipc";
 import { useApp } from "../../store/app";
@@ -98,6 +101,14 @@ export function Workspace() {
           <MenuButton
             label="Project menu"
             items={[
+              {
+                label: "Copy transcript",
+                icon: <Copy />,
+                disabled: !project.transcript,
+                onSelect: () =>
+                  project.transcript && void copyWithToast(transcriptWithSpeakers(project.transcript), "Transcript"),
+              },
+              "divider",
               { label: "Export transcript as text", icon: <Export />, disabled: !project.transcript, onSelect: () => void exportTranscript("txt") },
               { label: "Export transcript as SRT", icon: <Export />, disabled: !project.transcript, onSelect: () => void exportTranscript("srt") },
               { label: "Export transcript as VTT", icon: <Export />, disabled: !project.transcript, onSelect: () => void exportTranscript("vtt") },

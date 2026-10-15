@@ -621,3 +621,83 @@
 .history-pop .ask-picker-list {
   gap: 4px;
 }
+
+.ask-pane-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ask-pane-tabs .segmented {
+  flex: 1;
+}
+
+/* ---- Summary: what the recording is about, in its own words --------------------------------- */
+.summary-lead {
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.summary-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.summary-chip {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.summary-points h3,
+.ask-topics h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.summary-point {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 12px;
+  text-align: left;
+  transition: background-color var(--dur-fast) ease;
+}
+.summary-point:hover {
+  background: var(--surface-hover);
+}
+.summary-point .mono {
+  font-size: 11.5px;
+  padding-top: 2px;
+}
+.summary-point-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.summary-overview {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.summary-by {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  padding-top: 4px;
+}
+.answer-by {
+  font-size: 11.5px;
+  margin-top: -2px;
+}
+.answer.is-thinking .btn {
+  margin-left: auto;
+}

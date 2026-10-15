@@ -3,6 +3,7 @@ import {
   ArrowUp,
   CaretDown,
   Check,
+  Copy,
   CrosshairSimple,
   MagnifyingGlass,
   PencilSimple,
@@ -15,8 +16,10 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { Fragment, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Button, EmptyState, IconButton, Menu, Popover, Progress, TextInput } from "../../components/ui";
+import { Button, EmptyState, IconButton, Menu, MenuButton, Popover, Progress, TextInput } from "../../components/ui";
 import { clipFromSelection } from "../../lib/actions";
+import { transcriptPlain, transcriptText, transcriptWithSpeakers } from "../../lib/captions";
+import { copyWithToast } from "../../lib/clipboard";
 import { clock, duration as fmtDuration } from "../../lib/format";
 import { player, usePlayerTime } from "../../lib/player";
 import {
@@ -118,6 +121,7 @@ function TranscriptBody({
   onClipCreated: (id: string) => void;
 }) {
   const update = useProject((s) => s.update);
+  const projectName = useProject((s) => s.project?.name ?? "Transcript");
   const words = useMemo(() => flattenWords(transcript), [transcript]);
   const offsets = useMemo(() => {
     const out: number[] = [];
@@ -135,6 +139,7 @@ function TranscriptBody({
   const hits = useMemo(() => searchTranscript(words, deferredQuery), [words, deferredQuery]);
   const [hitIndex, setHitIndex] = useState(0);
   const [follow, setFollow] = useState(true);
+  const [speakerHint, setSpeakerHint] = useState(true);
   const [editing, setEditing] = useState<number | null>(null);
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const [speakerMenu, setSpeakerMenu] = useState<{ seg: number; anchor: HTMLElement } | null>(null);
@@ -353,6 +358,24 @@ function TranscriptBody({
         >
           <CrosshairSimple />
         </IconButton>
+        <MenuButton
+          label="Copy transcript"
+          items={[
+            { label: "Copy text", icon: <Copy />, onSelect: () => void copyWithToast(transcriptPlain(transcript), "Transcript") },
+            {
+              label: "Copy with speakers",
+              icon: <UsersThree />,
+              onSelect: () => void copyWithToast(transcriptWithSpeakers(transcript), "Transcript"),
+            },
+            {
+              label: "Copy with timestamps",
+              icon: <TextAa />,
+              onSelect: () => void copyWithToast(transcriptText(transcript, projectName), "Transcript"),
+            },
+          ]}
+        >
+          <Copy />
+        </MenuButton>
         <Button
           ref={setSpeakersAnchor}
           size="sm"
@@ -364,6 +387,19 @@ function TranscriptBody({
           {transcript.speakers.length} {transcript.speakers.length === 1 ? "speaker" : "speakers"}
         </Button>
       </div>
+
+      {!transcript.diarized && speakerHint && (
+        <div className="speaker-hint">
+          <span>
+            This transcript has one speaker. Whisper hears words, not voices — select a line and
+            <strong> Split turn</strong>, then click a name to say who is talking. Transcribing again with the
+            <strong> Small (English, speakers)</strong> model, or with Deepgram, separates them for you.
+          </span>
+          <IconButton size="sm" label="Dismiss" onClick={() => setSpeakerHint(false)}>
+            <X />
+          </IconButton>
+        </div>
+      )}
 
       {topic && (
         <div className="topic-banner">
@@ -427,6 +463,22 @@ function TranscriptBody({
           </Button>
           <IconButton size="sm" label="Play selection" onMouseDown={(e) => e.preventDefault()} onClick={() => player.playRange(selStart, selEnd)}>
             <Play weight="fill" />
+          </IconButton>
+          <IconButton
+            size="sm"
+            label="Copy selection"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const text = words
+                .slice(selection.first, selection.last + 1)
+                .map((w) => w.text)
+                .join(" ");
+              window.getSelection()?.removeAllRanges();
+              setSelection(null);
+              void copyWithToast(text, "Selection");
+            }}
+          >
+            <Copy />
           </IconButton>
           {selection.first - offsets[words[selection.first].seg] > 0 && (
             <IconButton
@@ -565,6 +617,9 @@ const SegmentView = memo(function SegmentView({
       )}
       {!editing && (
         <div className="seg-tools">
+          <IconButton size="sm" label="Copy this turn" onClick={() => void copyWithToast(segmentText(seg), "Turn")}>
+            <Copy />
+          </IconButton>
           <IconButton size="sm" label="Edit text" onClick={() => onEdit(index)}>
             <PencilSimple />
           </IconButton>

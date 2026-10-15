@@ -163,7 +163,7 @@ export interface Citation {
   label?: string;
 }
 
-export type AnswerEngine = "local" | "deepgram" | "claude";
+export type AnswerEngine = "local" | "deepgram" | "deepseek";
 
 export interface ChatMessage {
   id: string;
@@ -219,6 +219,8 @@ export interface Project {
   chat?: ChatMessage[];
   /** Subtitle styling for the whole recording, used by the Captions tab. */
   captions?: CaptionStyle;
+  /** Written by DeepSeek when a key is saved. The built-in summary needs no storing. */
+  aiSummary?: AiSummary | null;
   ui: { view: ProjectView; clipId: string | null; time: number };
 }
 
@@ -279,6 +281,16 @@ export interface Settings {
 
 export interface KeyStatus {
   deepgram: string | null;
+  deepseek: string | null;
+}
+
+/** A summary written by a model, kept with the project so it is paid for once. */
+export interface AiSummary {
+  model: string;
+  overview: string;
+  subjects: string[];
+  points: { at: number; text: string }[];
+  createdAt: string;
 }
 
 export interface TextIntelligence {
@@ -302,6 +314,12 @@ export interface WhisperModel {
   size: string;
   englishOnly: boolean;
   note: string;
+  /** The real model name, shown quietly for anyone who wants it. */
+  technical: string;
+  /** Where to start when nothing has been chosen. */
+  recommended: boolean;
+  /** The model marks where the speaker changes, so the transcript is split into turns. */
+  speakerTurns: boolean;
   installed: boolean;
 }
 

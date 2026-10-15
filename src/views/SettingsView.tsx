@@ -2,7 +2,7 @@ import { CheckCircle, CloudArrowUp, DownloadSimple, FolderOpen, HardDrives, Key,
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, type ReactNode } from "react";
 import { Button, Field, IconButton, Progress, Segmented, Select, TextInput } from "../components/ui";
-import { errorMessage, ipc } from "../lib/ipc";
+import { errorMessage, ipc, type KeyProvider } from "../lib/ipc";
 import { reportError, useApp } from "../store/app";
 
 export const WHISPER_LANGUAGES = [
@@ -43,7 +43,7 @@ function Section({ title, description, children }: { title: string; description?
   );
 }
 
-function ApiKeyRow({ provider, name, help }: { provider: "deepgram"; name: string; help: ReactNode }) {
+function ApiKeyRow({ provider, name, help }: { provider: KeyProvider; name: string; help: ReactNode }) {
   const status = useApp((s) => s.keys[provider]);
   const refreshKeys = useApp((s) => s.refreshKeys);
   const toast = useApp((s) => s.toast);
@@ -196,8 +196,12 @@ function WhisperModels() {
             >
               <span className="radio-dot" />
               <span className="model-text">
-                <span className="strong">{m.label}</span>
+                <span className="strong">
+                  {m.label}
+                  {m.recommended && <span className="model-pick">Recommended</span>}
+                </span>
                 <span className="faint">{m.note}</span>
+                <span className="faint model-technical">{m.technical}</span>
               </span>
             </button>
             <span className="mono faint model-size">{m.size}</span>
@@ -278,6 +282,21 @@ export function SettingsView() {
             help="Cloud transcription with speaker labels, plus topic, intent and sentiment detection that sharpens suggested moments. Create a key at console.deepgram.com."
           />
           <p className="faint panel-note">Finding moments always runs on this computer. Without a key it uses the transcript alone.</p>
+        </Section>
+
+        <Section
+          title="Summaries and answers"
+          description="Optional. A model writes summaries and answers questions in the Ask tab, instead of the app assembling both from the transcript's own sentences."
+        >
+          <ApiKeyRow
+            provider="deepseek"
+            name="DeepSeek API key"
+            help="Used to summarise a recording once, and to answer questions you ask about it. Long transcripts are narrowed to the relevant passages before anything is sent. Create a key at platform.deepseek.com."
+          />
+          <p className="faint panel-note">
+            Without a key both still work on this computer: summaries pick out the sentences carrying most of the
+            conversation, and answers quote the passages that match your question.
+          </p>
         </Section>
 
         <Section title="Appearance">

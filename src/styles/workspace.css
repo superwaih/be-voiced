@@ -889,3 +889,24 @@
     gap: 12px;
   }
 }
+
+/* Said once, in place: a transcript with a single speaker is a property of the model, not a fault. */
+.speaker-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 18px;
+  background: var(--accent-surface);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.speaker-hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.modal-hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-top: 14px;
+}

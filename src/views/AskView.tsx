@@ -2,6 +2,7 @@ import {
   ArrowRight,
   ArrowSquareOut,
   ClockCounterClockwise,
+  Copy,
   LinkSimple,
   PaperPlaneRight,
   Play,
@@ -19,9 +20,12 @@ import { JobCard } from "../components/JobCard";
 import { MediaElement } from "../components/media";
 import { Button, EmptyState, IconButton, Popover, Progress, Segmented, TextInput } from "../components/ui";
 import { ask, suggestedQuestions, type AskResult } from "../lib/ask";
-import { findMoments as findMomentsFor, importLink, loadProjectQuietly, openProject } from "../lib/actions";
+import { findMoments as findMomentsFor, importLink, loadProjectQuietly, openProject, writeSummary } from "../lib/actions";
 import { clock, duration, relativeDate } from "../lib/format";
-import { errorMessage, ipc } from "../lib/ipc";
+import { transcriptWithSpeakers } from "../lib/captions";
+import { summarize } from "../lib/summary";
+import { copyWithToast } from "../lib/clipboard";
+import { errorMessage, ipc, isCancelled } from "../lib/ipc";
 import { player, usePlayerTime } from "../lib/player";
 import { segmentText } from "../lib/transcript";
 import type { AskEntry, ChatMessage, Citation, LinkInfo, ProjectMeta } from "../lib/types";
@@ -173,6 +177,7 @@ function CitationList({ citations }: { citations: Citation[] }) {
 }
 
 function Thread({ messages, thinking }: { messages: ChatMessage[]; thinking: boolean }) {
+  const answerJob = useApp((s) => Object.values(s.jobs).find((j) => j.kind === "answer"));
   const endRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   useEffect(() => {
@@ -191,17 +196,23 @@ function Thread({ messages, thinking }: { messages: ChatMessage[]; thinking: boo
             <p className="answer-lead">{m.text}</p>
             <CitationList citations={m.citations ?? []} />
             {m.note && <p className="answer-note faint">{m.note}</p>}
+            {m.engine === "local" && <p className="answer-by faint">From the transcript, on this computer</p>}
           </motion.div>
         ),
       )}
       {thinking && (
         <div className="answer is-thinking">
-          <span className="faint">Reading the transcript</span>
+          <span className="faint">{answerJob?.stage ?? "Reading the transcript"}</span>
           <span className="dots" aria-hidden="true">
             <i />
             <i />
             <i />
           </span>
+          {answerJob && (
+            <Button size="sm" variant="ghost" onClick={() => useApp.getState().cancelJob(answerJob.id)}>
+              Cancel
+            </Button>
+          )}
         </div>
       )}
       <div ref={endRef} />
@@ -278,16 +289,123 @@ function AskTranscript({ onTranscribe }: { onTranscribe: () => void }) {
 
 function AskSummary() {
   const project = useProject((s) => s.project)!;
-  const words = project.transcript?.segments.reduce((n, s) => n + s.words.length, 0) ?? 0;
+  const hasDeepseek = useApp((s) => !!s.keys.deepseek);
+  const job = useApp((s) => Object.values(s.jobs).find((j) => j.projectId === project.id && j.kind === "analyze"));
+  // One attempt per recording per session: a failing call must not spend tokens in a loop.
+  const attempted = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!hasDeepseek || !project.transcript || project.aiSummary || job) return;
+    if (attempted.current.has(project.id)) return;
+    attempted.current.add(project.id);
+    void writeSummary();
+  }, [hasDeepseek, project.id, project.transcript, project.aiSummary, job]);
+  const summary = useMemo(
+    () => summarize(project.transcript, project.source.duration),
+    [project.transcript, project.source.duration],
+  );
+
+  if (!project.transcript || !summary) {
+    return (
+      <p className="faint ask-wait">
+        Transcribe this recording and its summary appears here, built from what was actually said.
+      </p>
+    );
+  }
+
+  const ai = project.aiSummary;
+  const writing = !!job && job.kind === "analyze";
+  if (writing && !ai) {
+    return (
+      <div className="ask-summary">
+        <div className="ask-progress">
+          <Progress value={job!.progress} label={job!.label} />
+          <span className="faint">{job!.stage}</span>
+        </div>
+        <p className="faint ask-wait">Reading the whole transcript and writing a summary of it.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="ask-summary">
+      {ai ? (
+        <>
+          <p className="summary-overview">{ai.overview}</p>
+          {ai.subjects.length > 0 && (
+            <div className="summary-subjects">
+              {ai.subjects.map((s) => (
+                <span key={s} className="summary-chip">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="summary-points">
+            <h3>Key points</h3>
+            {ai.points.map((p, i) => (
+              <button key={i} className="summary-point" onClick={() => player.seek(p.at)} title="Play from here">
+                <span className="mono faint">{clock(p.at)}</span>
+                <span className="summary-point-text">{p.text}</span>
+              </button>
+            ))}
+          </div>
+          <div className="summary-by faint">
+            <span>Written by {ai.model}</span>
+            <button className="link-btn" disabled={writing} onClick={() => void writeSummary()}>
+              {writing ? "Writing" : "Write again"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="summary-lead">{summary.lead}</p>
+
+          {summary.subjects.length > 0 && (
+            <div className="summary-subjects">
+              {summary.subjects.map((s) => (
+                <span key={s} className="summary-chip">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="summary-points">
+            <h3>What was said</h3>
+            {summary.points.map((p) => (
+              <button key={p.start} className="summary-point" onClick={() => player.seek(p.start)} title="Play from here">
+                <span className="mono faint">{clock(p.start)}</span>
+                <span className="summary-point-text">
+                  {p.speaker && <span className="cite-speaker">{p.speaker}: </span>}
+                  {p.text}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {hasDeepseek && (
+            <div className="summary-by faint">
+              <span>Built from the transcript on this computer.</span>
+              <button className="link-btn" disabled={writing} onClick={() => void writeSummary()}>
+                {writing ? "Writing" : "Write a proper summary"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
       <dl className="ask-facts">
         <dt>Length</dt>
         <dd className="mono">{duration(project.source.duration)}</dd>
         <dt>Words</dt>
-        <dd className="mono">{words.toLocaleString()}</dd>
+        <dd className="mono">{summary.words.toLocaleString()}</dd>
         <dt>Voices</dt>
-        <dd>{project.transcript?.speakers.length ?? 0}</dd>
+        <dd>
+          {summary.speakers.length > 1
+            ? summary.speakers.map((v) => `${v.name} (${clock(v.seconds)})`).join(", ")
+            : (summary.speakers[0]?.name ?? "One speaker")}
+        </dd>
         {project.link && (
           <>
             <dt>From</dt>
@@ -296,26 +414,7 @@ function AskSummary() {
         )}
       </dl>
 
-      {project.topics.length > 0 ? (
-        <div className="ask-topics">
-          <h3>Topics</h3>
-          {project.topics.map((t) => (
-            <button key={t.id} className="ask-topic" onClick={() => player.seek(t.ranges[0]?.start ?? 0)}>
-              <span className="ask-topic-row">
-                <strong>{t.name}</strong>
-                <span className="mono faint">{clock(t.ranges[0]?.start ?? 0)}</span>
-              </span>
-              <span className="faint">{t.summary}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="faint">
-          Open this recording and run <strong>Find moments</strong> for topics and a proper read of the conversation.
-        </p>
-      )}
-
-      {project.clips.length > 0 && (
+      {project.clips.filter((c) => c.status !== "rejected").length > 0 && (
         <div className="ask-topics">
           <h3>Moments</h3>
           {project.clips
@@ -382,7 +481,6 @@ function HistoryList({
   );
 }
 
-/** Recordings you have but have not asked about: how a conversation starts without a new link. */
 function RecordingPicker({ items, onPick, title }: { items: ProjectMeta[]; onPick: (id: string) => void; title?: string | null }) {
   if (!items.length) return null;
   return (
@@ -417,6 +515,7 @@ export function AskView() {
   const [historyAnchor, setHistoryAnchor] = useState<HTMLButtonElement | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const entries = useAsk((s) => s.entries);
+  const hasDeepseek = useApp((s) => !!s.keys.deepseek);
   const loadHistory = useAsk((s) => s.load);
   const clearHistory = useAsk((s) => s.clear);
 
@@ -480,7 +579,21 @@ export function AskView() {
     setDraft("");
     setThinking(true);
     try {
-      const result: AskResult = await ask(question, { project: current, transcript: current.transcript, intel: null });
+      const result: AskResult = await useApp.getState().runJob(
+        { kind: "answer", label: "Answering", projectId: current.id, stage: "Reading the transcript" },
+        (jobId) =>
+          ask(
+            question,
+            {
+              project: current,
+              transcript: current.transcript!,
+              intel: null,
+              history: thread.messages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
+              jobId,
+            },
+            hasDeepseek ? "deepseek" : "local",
+          ),
+      );
       useAsk.getState().addMessage(thread.id, {
         id: crypto.randomUUID(),
         role: "app",
@@ -491,7 +604,7 @@ export function AskView() {
         note: result.note,
       });
     } catch (err) {
-      reportError("Could not answer that", err);
+      if (!isCancelled(err)) reportError("Could not answer that", err);
     } finally {
       setThinking(false);
     }
@@ -578,6 +691,11 @@ export function AskView() {
               )}
             </div>
           </Popover>
+          {project.transcript && (
+            <Button icon={<TextAa />} disabled={!!job} onClick={() => setTranscribeOpen(true)}>
+              Transcribe again
+            </Button>
+          )}
           <Button icon={<LinkSimple />} onClick={() => setShowLink((v) => !v)}>
             New link
           </Button>
@@ -677,16 +795,27 @@ export function AskView() {
             <MediaElement className="media-contain" />
           </div>
           <Transport />
-          <Segmented<"transcript" | "summary">
-            label="Recording panel"
-            size="sm"
-            value={pane}
-            onChange={setPane}
-            options={[
-              { value: "transcript", label: "Transcript" },
-              { value: "summary", label: "Summary" },
-            ]}
-          />
+          <div className="ask-pane-tabs">
+            <Segmented<"transcript" | "summary">
+              label="Recording panel"
+              size="sm"
+              value={pane}
+              onChange={setPane}
+              options={[
+                { value: "transcript", label: "Transcript" },
+                { value: "summary", label: "Summary" },
+              ]}
+            />
+            {project.transcript && (
+              <IconButton
+                size="sm"
+                label="Copy transcript"
+                onClick={() => void copyWithToast(transcriptWithSpeakers(project.transcript!), "Transcript")}
+              >
+                <Copy />
+              </IconButton>
+            )}
+          </div>
           <div className="ask-pane-body">
             {pane === "transcript" ? <AskTranscript onTranscribe={() => setTranscribeOpen(true)} /> : <AskSummary />}
           </div>
@@ -697,6 +826,9 @@ export function AskView() {
         <TranscribeModal
           open
           onClose={() => setTranscribeOpen(false)}
+          onStart={() =>
+            useProject.getState().update((p) => ({ ...p, aiSummary: null }), { history: false })
+          }
           // Moments make the "top three" answer instant, so run them straight after.
           onDone={() => void findMomentsFor("initial")}
         />
