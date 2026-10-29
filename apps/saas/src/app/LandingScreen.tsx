@@ -50,7 +50,7 @@ const LIFT_SOFT = "shadow-[0_1px_3px_rgba(50,11,53,0.04),0_18px_44px_-24px_rgba(
 
 export function LandingScreen() {
   return (
-    <div className="h-full scroll-smooth overflow-y-auto bg-[#f4f3f5] text-[#1a1420] [scrollbar-gutter:stable_both-edges]">
+    <div className="sb-grain h-full scroll-smooth overflow-y-auto bg-[#f4f3f5] text-[#1a1420] [scrollbar-gutter:stable_both-edges]">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#320b35] focus:px-5 focus:py-2.5 focus:text-[13px] focus:font-semibold focus:text-white"
@@ -63,6 +63,7 @@ export function LandingScreen() {
       <main id="main">
         <Hero />
         <Speakers />
+        <Seam />
         <Captions />
         <Ask />
         <Server />
@@ -366,7 +367,7 @@ function Cascade() {
  */
 function Speakers() {
   return (
-    <Band id="speakers">
+    <Band id="speakers" tone="plum" flush>
       <div className="grid items-center gap-12 md:grid-cols-12 md:gap-8">
         <Reveal className="md:col-span-7">
           <TranscriptCard />
@@ -374,6 +375,7 @@ function Speakers() {
         <Reveal delay={110} className="md:col-span-4 md:col-start-9">
             <SectionHead
               icon={<TextAlignLeft weight="light" />}
+              onDark
               kicker="Who said what"
               title="Two people, told apart."
             body="Soundbite separates the voices as it transcribes, so a conversation reads like a script instead of a wall. Every word carries its own timestamp, which is what makes everything after this possible."
@@ -390,7 +392,7 @@ function Speakers() {
  */
 function Captions() {
   return (
-    <Band id="captions" tone="deep">
+    <Band id="captions">
       <Reveal>
         <div className="mx-auto max-w-[760px] text-center">
           <SectionHead
@@ -404,7 +406,7 @@ function Captions() {
       </Reveal>
 
       <Reveal delay={120}>
-        <div className="mx-auto mt-16 max-w-[900px]">
+        <div className="mx-auto mt-16 max-w-[1060px]">
           <CaptionCard />
         </div>
       </Reveal>
@@ -415,7 +417,7 @@ function Captions() {
 /** Ask, mirrored and narrower, so no two neighbouring sections share a composition. */
 function Ask() {
   return (
-    <Band id="ask">
+    <Band id="ask" tone="tint">
       <div className="grid items-center gap-12 md:grid-cols-12 md:gap-8">
         <Reveal className="md:col-span-4">
             <SectionHead
@@ -448,13 +450,13 @@ function Server() {
     <Band tone="ink">
       <div className="grid items-end gap-12 md:grid-cols-12 md:gap-10">
         <Reveal className="md:col-span-6">
-            <span className="inline-grid size-12 place-items-center rounded-2xl bg-white/10 text-white [&_svg]:size-[22px]">
+            <span className="inline-grid size-14 place-items-center rounded-2xl bg-white/10 text-[#e7cbe8] [&_svg]:size-[26px]">
               <Lightning weight="light" />
             </span>
-            <h2 className="mt-7 max-w-[14ch] text-[clamp(34px,4.6vw,50px)] leading-[1.02] font-bold tracking-[-0.045em] text-balance text-white">
+            <h2 className="mt-7 max-w-[13ch] text-[clamp(38px,5.4vw,68px)] leading-[0.98] font-bold tracking-[-0.05em] text-balance text-white">
               Your laptop does none of the work.
             </h2>
-            <p className="mt-6 max-w-[44ch] text-[19px] leading-relaxed text-pretty text-white/55">
+            <p className="mt-6 max-w-[42ch] text-[18px] leading-relaxed text-pretty text-white/55">
               Transcription runs on our machines. Nothing to install, no model to download, no
               graphics card to own. Upload a file and close the tab.
             </p>
@@ -492,10 +494,10 @@ function Close() {
         <div className={`${LIFT} mx-auto max-w-[1180px] rounded-[2.5rem] border border-[#1a1420]/[0.06] bg-white p-2`}>
           <div className="flex flex-col items-start gap-8 rounded-[calc(2.5rem-0.5rem)] bg-[#faf9fb] p-9 md:flex-row md:items-center md:justify-between md:p-14">
             <div>
-              <h2 className="max-w-[16ch] text-[clamp(34px,4.6vw,50px)] leading-[1.02] font-bold tracking-[-0.045em] text-balance">
+              <h2 className="max-w-[14ch] text-[clamp(38px,5.4vw,68px)] leading-[0.98] font-bold tracking-[-0.05em] text-balance">
                 Start with one recording.
               </h2>
-              <p className="mt-4 max-w-[44ch] text-[15px] leading-relaxed text-[#1a1420]/55">
+              <p className="mt-5 max-w-[44ch] text-[18px] leading-relaxed text-[#1a1420]/55">
                 Free to begin. No card, and no trial counting down at you.
               </p>
             </div>
@@ -514,28 +516,40 @@ function SectionHead({
   title,
   body,
   centred,
+  onDark,
 }: {
   icon: React.ReactNode;
   kicker: string;
   title: string;
   body: string;
   centred?: boolean;
+  onDark?: boolean;
 }) {
   return (
     <div className={centred ? "flex flex-col items-center" : undefined}>
-      <span className="inline-grid size-12 place-items-center rounded-2xl bg-[#320b35]/[0.06] text-[#5c2961] [&_svg]:size-[22px]">
+      <span
+        className={`inline-grid size-14 place-items-center rounded-2xl [&_svg]:size-[26px] ${
+          onDark ? "bg-white/10 text-[#e7cbe8]" : "bg-[#320b35]/[0.07] text-[#5c2961]"
+        }`}
+      >
         {icon}
       </span>
-      <p className="mt-6 text-[11px] font-medium tracking-[0.2em] text-[#1a1420]/40 uppercase">
+      <p
+        className={`mt-7 text-[11px] font-medium tracking-[0.2em] uppercase ${onDark ? "text-white/40" : "text-[#1a1420]/40"}`}
+      >
         {kicker}
       </p>
       <h2
-        className={`mt-3 text-[clamp(34px,4.6vw,50px)] leading-[1.02] font-bold tracking-[-0.045em] text-balance ${centred ? "" : "max-w-[14ch]"}`}
+        className={`mt-4 text-[clamp(38px,5.4vw,68px)] leading-[0.98] font-bold tracking-[-0.05em] text-balance ${
+          centred ? "" : "max-w-[13ch]"
+        } ${onDark ? "text-white" : ""}`}
       >
         {title}
       </h2>
       <p
-        className={`mt-5 text-[15px] leading-relaxed text-pretty text-[#1a1420]/55 ${centred ? "max-w-[52ch]" : "max-w-[40ch]"}`}
+        className={`mt-6 text-[18px] leading-relaxed text-pretty ${centred ? "max-w-[54ch]" : "max-w-[40ch]"} ${
+          onDark ? "text-white/55" : "text-[#1a1420]/55"
+        }`}
       >
         {body}
       </p>
@@ -543,25 +557,84 @@ function SectionHead({
   );
 }
 
+/**
+ * The seam: one recording, edge to edge, with the clip lit inside it.
+ *
+ * This is the page's one motif and the only element that spans the full width. It is also the
+ * whole product stated as a picture — thirty-eight minutes of grey, sixteen seconds of plum — which
+ * is a thing no competitor's page can borrow, because none of them is named after the short part.
+ *
+ * The bars are a fixed series rather than a random one: this renders on the server too, and a
+ * waveform that differed between server and client would hydrate into a mismatch.
+ */
+const SEAM = Array.from({ length: 150 }, (_, i) => {
+  // A deterministic, slightly musical profile: three overlapping cycles, never a flat comb.
+  const a = Math.sin(i * 0.21) * 0.5 + 0.5;
+  const b = Math.sin(i * 0.57 + 1.1) * 0.5 + 0.5;
+  const c = Math.sin(i * 1.13 + 2.7) * 0.5 + 0.5;
+  return 0.18 + (a * 0.5 + b * 0.32 + c * 0.18) * 0.82;
+});
+const SEAM_FROM = 84;
+const SEAM_TO = 101;
+
+function Seam() {
+  return (
+    <section aria-hidden="true" className="bg-[#2a0a2d] pb-20 md:pb-28">
+      <div className="flex h-[140px] items-center gap-[3px] px-4 md:h-[200px] md:px-8">
+        {SEAM.map((h, i) => {
+          const lit = i >= SEAM_FROM && i <= SEAM_TO;
+          return (
+            <span
+              key={i}
+              className="min-w-0 flex-1 rounded-full"
+              style={{
+                height: `${Math.round(h * (lit ? 100 : 72))}%`,
+                background: lit ? "#e7cbe8" : "rgba(255,255,255,0.13)",
+              }}
+            />
+          );
+        })}
+      </div>
+
+      <div className="mx-auto flex max-w-[1180px] items-baseline justify-between px-4 md:px-8">
+        <span className="mono text-[11px] text-white/30">00:00:00</span>
+        <span className="text-[13px] font-medium text-[#e7cbe8]">
+          sixteen seconds of thirty-eight minutes
+        </span>
+        <span className="mono text-[11px] text-white/30">00:38:02</span>
+      </div>
+    </section>
+  );
+}
+
 function Band({
   id,
   tone = "plain",
+  flush,
   children,
 }: {
   id?: string;
-  tone?: "plain" | "deep" | "ink";
+  tone?: "plain" | "tint" | "plum" | "ink";
+  /** Drops the bottom padding where the next block continues the same ground. */
+  flush?: boolean;
   children: React.ReactNode;
 }) {
-  // One palette throughout: the deep band is a darker step of the same off-white, and the ink band
-  // is the brand's own plum. Neither is a sudden jump to a different colour family.
-  const skin =
-    tone === "ink"
-      ? "bg-[#18061b]"
-      : tone === "deep"
-        ? "bg-[#ebe9ed]"
-        : "bg-transparent";
+  // Four grounds, all drawn from the brand's own plum: the page alternates between them so the
+  // scroll has a rhythm. Every section on one silver ground was the single biggest reason this
+  // page read as flat — nothing to look forward to, and no reason for any section to feel
+  // different from the one above it.
+  const skin = {
+    plain: "bg-transparent",
+    tint: "bg-[#eae2ec]",
+    plum: "bg-[#2a0a2d]",
+    ink: "bg-[#120410]",
+  }[tone];
+
   return (
-    <section id={id} className={`${skin} scroll-mt-24 px-4 py-24 md:scroll-mt-28 md:px-8 md:py-36`}>
+    <section
+      id={id}
+      className={`${skin} scroll-mt-24 px-4 pt-24 md:scroll-mt-28 md:px-8 md:pt-32 ${flush ? "pb-10 md:pb-14" : "pb-24 md:pb-32"}`}
+    >
       <div className="mx-auto max-w-[1180px]">{children}</div>
     </section>
   );
