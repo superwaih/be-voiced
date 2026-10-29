@@ -2,6 +2,7 @@ import { CheckCircle, CloudArrowUp, HardDrives, WarningCircle } from "@phosphor-
 import { useState, type ReactNode } from "react";
 import { Button, Field, Modal, Select } from "../../components/ui";
 import { transcribe } from "../../lib/actions";
+import { platform } from "../../lib/ipc";
 import { duration } from "@be-voiced/engine/format";
 import { useApp } from "../../store/app";
 import { useProject } from "../../store/project";
@@ -97,8 +98,12 @@ export function TranscribeModal({ open, onClose, onDone }: { open: boolean; onCl
           selected={engine === "local"}
           onSelect={() => setEngine("local")}
           icon={<HardDrives />}
-          title="Local with Whisper"
-          body="Private and offline. Runs on this computer, so long files take a while. One speaker label."
+          title={platform === "web" ? "Transcribe with Whisper" : "Local with Whisper"}
+          body={
+            platform === "web"
+              ? "Your file is uploaded and transcribed on our servers. Long recordings take a few minutes, and you can keep working."
+              : "Private and offline. Runs on this computer, so long files take a while. One speaker label."
+          }
           status={
             !sidecars?.whisper
               ? { ok: false, text: "whisper.cpp is missing from this build" }

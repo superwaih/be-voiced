@@ -15,7 +15,14 @@ caught locally. No cloud account is needed to build or test any of it.
 - **Monorepo** — done. `packages/engine` holds the transcript model, moment finder, answer engine and
   caption renderers, with no Tauri, DOM or network code, so the web app and the server worker import
   the same logic the desktop runs.
-- **Next** — Phase 0.
+- **apps/web** — a Vite build of the desktop app in a browser: same views, `lib/ipc.ts` swapped for
+  a browser bridge, a URL per tab. Complete and working, and now superseded.
+- **apps/saas** — the product, and Phase 0 is done. A standalone Next.js app, meant to be lifted out
+  of this repo and hosted on its own: every screen works, with Tailwind on the existing design
+  tokens and a URL per screen.
+- **Transcription runs in the browser**, through ONNX Runtime on WebGPU. This is a change of plan
+  and a large one — see below.
+- **Next** — Phase 1.
 
 ---
 
@@ -42,32 +49,74 @@ volume. Link ingestion stays desktop-only.
 
 ---
 
+## Whisper in the browser changes the sums
+
+The original plan put transcription on a worker and priced it at roughly 5¢ per 10-minute video.
+It now runs in the browser instead, through ONNX Runtime on WebGPU, and that removes the largest
+cost line in the business entirely.
+
+| | Worker | In the browser |
+| --- | --- | --- |
+| Cost per video, transcribe and render | ~5¢ | nothing |
+| Waiting behind others | a queue to size and pay for | never |
+| Audio leaves the machine | yes | no |
+| First use | instant | 75–240 MB model, downloaded once |
+| Long files on a weak device | fine | slow without WebGPU |
+
+The privacy line is worth more than the money: "your recording never leaves your computer" is a
+claim most competitors cannot make, and it is now simply true.
+
+What it does not solve is the last row. A browser with no WebGPU falls back to the processor and a
+long recording becomes an afternoon. So the worker is not cancelled, it is **demoted**: the browser
+is the default, and the worker is there for long files and weak devices. That turns Phase 3 from a
+blocker into an upgrade, and lets the thing ship before any of it exists.
+
+**Rendering went the same way.** Captions are burned into the picture with WebCodecs — the browser
+decodes, we draw, the browser encodes — which removes the other half of the per-video cost.
+
+ffmpeg.wasm was the obvious candidate and cannot do it: the published core is built with no
+`--enable-lib*` flags and `--disable-autodetect`, so it has no libass, no libfreetype and no
+libx264. A custom core could be built with all three, at a 40 MB-plus download and an Emscripten
+toolchain to maintain. WebCodecs is hardware-accelerated, already in the browser, and free.
+
 ## Architecture
 
 The scaling requirement is that users never wait behind each other. That rules out a fixed pool of
 workers draining a shared queue, because a shared queue is what a fixed pool forces on you.
 
 ```
-Browser ──presigned PUT──────────────► Object storage   (bytes never touch the API)
+Browser ──presigned PUT──────────────► Object storage   (bytes never touch the app)
    │
-   └──POST /jobs──► Control plane (small, always on)
-                         │ starts one container per job
+   └──POST /api/jobs──► Next.js (app + API, one deployable)
+                         │ writes a row
                          ▼
-                    Job container (ephemeral, per-second billing, scales to zero)
-                    pull input → whisper / ffmpeg → write output → report status
+                    jobs table in Postgres
+                         │ claimed with FOR UPDATE SKIP LOCKED
+                         ▼
+                    Worker container (ffmpeg + whisper.cpp, scales separately)
+                    pull input → transcribe → write output → update the row
                          │
    ◄────progress─────────┘
 ```
 
-**Control plane** — accounts, sessions, subscriptions, media records, job records, presigned URLs.
-Holds no media and does no transcoding, so it stays small and cheap.
+**Next.js** — the interface and the control plane in one app: accounts, sessions, subscriptions,
+media records, job records, presigned URLs, and the marketing pages. Holds no media and does no
+transcoding, so it stays small and cheap.
 
-**Job container** — takes one job, does it, exits. One per job means fifty simultaneous uploads start
-fifty containers; concurrency is bounded by a spend cap, not by hardware. Locally this is a
-long-lived process with the same entrypoint, so containerising it later is a packaging change.
+Same-origin is the reason it is one app rather than two. A separate API means the app and the API
+must be subdomains of one registrable domain, with CORS and cookie-domain rules to match. At `/api`
+on the same origin that problem does not exist.
 
-**Storage** — behind a trait: MinIO locally, Cloudflare R2 in production. R2 because egress is free;
-on S3 the playback traffic alone would cost more than all the compute.
+**Worker** — a container with ffmpeg and whisper.cpp in it, claiming jobs from the table and running
+them to completion. It is not a serverless function: these jobs run for minutes and are CPU-bound,
+which is the one shape serverless is worst at. Run one worker, or fifty; concurrency is bounded by a
+spend cap, not by hardware.
+
+**No Redis.** At a thousand jobs a month a queue server is a second thing to run, pay for and
+monitor, and Postgres already does the job correctly with `SKIP LOCKED`.
+
+**Storage** — behind one module: MinIO locally, Cloudflare R2 in production. R2 because egress is
+free; on S3 the playback traffic alone would cost more than all the compute.
 
 Two deployables, not microservices. More services at this scale would add network hops and failure
 modes for nothing.
@@ -82,9 +131,12 @@ the results by their absolute word timings. A 60-minute recording finishes in ro
 
 | Decision | Why |
 | --- | --- |
-| Whisper on our own workers, not Deepgram | no per-minute fee; ~5¢ per 10-minute video all in |
-| Serverless job containers, not a VPS pool | no shared queue, no idle cost, scales with revenue |
-| Keep Rust, don't rewrite in Node | the work is whisper and FFmpeg subprocesses; the wrapper language is irrelevant, and Rust is shared with the desktop |
+| Whisper in the browser first, a worker second | no per-minute fee at all, nothing to queue, and the audio never leaves the machine |
+| Whisper on our own workers, not Deepgram, for what the browser cannot do | no per-minute fee; ~5¢ per 10-minute video all in |
+| Next.js for the app and the API, not an SPA plus a service | one deployable, same-origin cookies, and static marketing pages a search engine can read |
+| A worker container, never a serverless function for media | minutes-long CPU-bound jobs are the one thing serverless handles worst |
+| Postgres as the queue, not Redis | `SKIP LOCKED` is enough at this volume; a queue server is another thing to run and pay for |
+| Node for the worker, not the existing Rust | the work is whisper and FFmpeg subprocesses, so the wrapper language barely matters, and one language is one language to maintain alone |
 | Cloudflare R2, not S3 | free egress |
 | Our own auth, not Clerk or Supabase | the user wants to own the flow |
 | Stripe Checkout and Customer Portal | no billing UI to build, no PCI scope |
@@ -95,22 +147,30 @@ the results by their absolute word timings. A 60-minute recording finishes in ro
 
 Ordered easiest to hardest. Each ends with something demonstrable.
 
-### Phase 0 — Decouple the Rust from Tauri · 1.5 days
+### Phase 0 — The standalone app · done
 
-`AppHandle` is used for two things: resolving the data directory and emitting job progress. Replace
-it with a `Ctx` carrying a data root and a progress sink, move the modules into `crates/core`, and
-set up the Cargo workspace. The Tauri app keeps thin `#[tauri::command]` wrappers.
+`apps/saas`: Next.js, app router, Tailwind wired to the plum tokens so nothing changed to look at.
+Navigation is a rail on a laptop and a top bar with a drawer on a phone. Home, Projects,
+Transcripts, Captions, Ask, Settings and the workspace all work, against browser storage: import,
+waveform, transcript with playback following it, moment finding, captions with live preview, and
+answers with citations. The engine is copied in at `src/lib/engine`; there are no workspace imports,
+so the folder can be lifted out of this repo and hosted on its own.
 
-**Done when** clippy is clean and the desktop app imports, transcribes and exports exactly as before.
+One module, `src/lib/api.ts`, stands between the interface and its data. It is the only thing phases
+1 to 3 have to replace.
 
-This is the gate. Every later phase runs the same code from a server instead of a window.
+Transcription and rendering are both already real, and both run on the graphics card:
+`src/lib/transcribe` runs Whisper in a worker, verified on a known sample down to the word timings,
+and `src/lib/render` burns captions into an MP4 with WebCodecs, verified frame by frame against the
+preview. Phases 3 and 5 are now about the files a laptop should not be asked to handle, not about
+whether any of it works.
 
 ### Phase 1 — Local stack · 1 day
 
-Docker compose with Postgres, MinIO and Mailpit. Axum skeleton with migrations, config, structured
-logging and `/health`. Storage behind a trait.
+Docker compose with Postgres, MinIO and Mailpit. Migrations, config, and a `/api/health` route.
+Storage behind one module, so MinIO and R2 are a config change apart.
 
-**Done when** `docker compose up` gives a working API and a file that round-trips through the bucket.
+**Done when** `docker compose up` gives a working app and a file that round-trips through the bucket.
 
 ### Phase 2 — Accounts · 5 days
 
@@ -118,44 +178,60 @@ Tables: `users`, `identities`, `sessions`, `email_tokens`.
 
 - Argon2id passwords, email verification, reset that invalidates every session
 - Google sign-in over OIDC with PKCE, the id_token verified server side against Google's JWKS
-- Opaque session cookies — `HttpOnly`, `Secure`, `SameSite=Lax`, scoped to the parent domain — not
-  JWTs, so sessions can be revoked and no token is reachable from JavaScript
+- Opaque session cookies — `HttpOnly`, `Secure`, `SameSite=Lax` — not JWTs, so sessions can be
+  revoked and no token is reachable from JavaScript
 - Rate limits on login and reset; no leaking whether an email exists
 
-App and API must live on subdomains of the same registrable domain, or cookies and CORS become
-painful. Decide the domain before this phase.
+Auth.js handles the Google side and the session plumbing. It is a library inside the app talking to
+our own Postgres, not a hosted service, so the flow stays ours.
 
 **Done when** you can register, verify in Mailpit, log in, reset, and sign in with a real Google
 account against localhost.
 
 ### Phase 3 — The media pipeline · 5 days
 
+Now an upgrade rather than a gate: the browser already transcribes, so this is for the files it
+should not be asked to — hours long, or a device with no WebGPU.
+
 Presigned upload, probe for duration and dimensions, thumbnail, waveform peaks. Job records with
-state and progress. A worker process standing in for the container. Whisper transcription through
-`crates/core`. Progress streamed to the browser.
+state and progress. The worker: a loop claiming rows with `SKIP LOCKED`, running ffmpeg and
+whisper.cpp, writing the results back. Progress streamed to the browser. The interface already
+reports these stages, because the in-browser path reports the same ones.
 
-**Done when** a file uploaded through the API returns a transcript identical to the desktop's.
+The whisper invocation, the JSON parsing and the chunk stitching already exist in Rust in this repo;
+porting them to the Node worker is mostly moving command lines across.
 
-### Phase 4 — Web front end · 4 days
+**Done when** a file uploaded through the app returns a transcript identical to the desktop's.
 
-A web implementation of `ipc.ts` behind a build flag; the views, stores and engines are unchanged.
-Auth screens, upload with progress, job state. The Captions tab works end to end: the video streams
-from the server, captions draw over it in CSS, dragging and styling behave as they do on the desktop.
-No video processing in the browser — preview is an HTML video element with text on top.
+### Phase 4 — Wire the interface to the service · 2 days
 
-The moment finder and the answer engine come across free; they are already pure TypeScript.
+The screens exist by now; this phase is the seam behind them. One module stands between the
+interface and its data — browser storage and a sample transcript today, the API after this — so this
+is a rewrite of that module and little else.
+
+- point it at the real endpoints instead of localStorage and the sample transcript
+- auth screens, and the session cookie from Phase 2
+- presigned upload with real progress, and job state polled from the server
+- the Captions tab against streamed video rather than a local blob
 
 **Done when** the whole flow works in a browser against the local stack.
 
-### Phase 5 — Rendering · 3 days
+### Phase 5 — Rendering at scale · 3 days
 
-Burn-in through the same FFmpeg and ASS path the desktop uses, output to the bucket, download link.
+Done in the browser already, with WebCodecs. What is left here is the same job on a worker, for
+files too long to ask a laptop to encode.
+
+
+Burn-in through the same FFmpeg and ASS arguments the desktop uses, output to the bucket, download
+link. The ASS builder is pure TypeScript and already copied into the app, so the worker and the
+preview agree on where a caption sits.
 Parallel chunked transcription for long files.
 
 **Done when** an exported MP4 is indistinguishable from the desktop's, captions in the same place.
 
-Rendering is the expensive half — roughly four times the cost of transcribing the same video — so it
-must be an explicit action, never automatic.
+Rendering is the expensive half on a server — roughly four times the cost of transcribing the same
+video — so it must be an explicit action, never automatic. In the browser it costs nothing, which is
+why that is the default.
 
 ### Phase 6 — Plans and billing · 4 days
 
@@ -192,15 +268,17 @@ The only phase that spends money.
 
 | Piece | Where | Cost |
 | --- | --- | --- |
-| Web front end | Cloudflare Pages | free |
-| Control plane | Fly.io, 512 MB | ~$5/mo |
+| App and API | Fly.io or Hetzner, Docker, `output: "standalone"` | ~$5-10/mo |
 | Database | Neon Postgres | free → $19 |
 | Files | R2 with lifecycle rules | ~$5/mo |
-| Job containers | Modal or Cloud Run with GPU | per second |
+| Workers | Fly machines, or Modal / Cloud Run with GPU | per second |
 | Errors, uptime | Sentry, Better Stack | free tier |
 
+Vercel is the fastest path and works unchanged, but it is also the one whose bill surprises people.
+The app builds as a container so that stays a choice rather than a dependency.
+
 Dockerfiles, GitHub Actions, DNS, secrets, retention rules, monitoring. **Bake the whisper model into
-the job image** — downloading it on every cold start multiplies the cost of short jobs.
+the worker image** — downloading it on every cold start multiplies the cost of short jobs.
 
 ---
 
@@ -246,7 +324,7 @@ Needed before the phase in brackets:
 
 1. **Maximum file duration and size** [3]
 2. **Retention window** for uploads and outputs [3]
-3. **Domain**, since app and API must be subdomains of it [2]
+3. **Domain**, for the session cookie and the Google OAuth callback [2]
 4. **Free tier** — keep it, or trial with a card? Compute-heavy free tiers get mined [6]
 5. **GPU or CPU** job containers — GPU is ~5× faster at similar cost per job, CPU runs anywhere [8]
 

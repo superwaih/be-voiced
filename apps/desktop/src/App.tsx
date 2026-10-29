@@ -7,7 +7,7 @@ import { DeleteProjectDialog } from "./components/DeleteProjectDialog";
 import { Sidebar } from "./components/Sidebar";
 import { Toasts } from "./components/Toasts";
 import { importFile, MEDIA_EXTENSIONS, openProject } from "./lib/actions";
-import { isTauri } from "./lib/ipc";
+import { bridgeReady } from "./lib/ipc";
 import { bootApp, useApp } from "./store/app";
 import { useProject } from "./store/project";
 import { AskView } from "./views/AskView";
@@ -35,7 +35,7 @@ function useTheme() {
 function useFileDrop() {
   const [hovering, setHovering] = useState(false);
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!bridgeReady()) return;
     let unlisten: (() => void) | undefined;
     void getCurrentWebview()
       .onDragDropEvent((event) => {
@@ -65,7 +65,7 @@ export default function App() {
   const dropping = useFileDrop();
 
   useEffect(() => {
-    if (!isTauri()) {
+    if (!bridgeReady()) {
       setBootError("Be Voiced runs as a desktop app. Start it with `pnpm tauri dev`.");
       return;
     }

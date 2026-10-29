@@ -1,0 +1,28 @@
+# TLS, obtained and renewed automatically. Both names need an A record pointing at the VPS before
+# the first start — Caddy asks Let's Encrypt for a certificate on boot and cannot get one for a
+# name that does not resolve.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Recordings are large. The default body limit is far too small for a podcast.
+	request_body {
+		max_size 2GB
+	}
+
+	reverse_proxy app:3000
+}
+
+# Object storage on its own name, not a path under the app.
+#
+# A presigned URL is signed over the exact path the browser will request. Serving the bucket from
+# a subdirectory meant either stripping the prefix — so MinIO verified a different path than was
+# signed and rejected every upload — or keeping it, and MinIO reading "storage" as the bucket name.
+# A subdomain has no prefix to disagree about, which is why this is not a path.
+storage.{$DOMAIN} {
+	request_body {
+		max_size 2GB
+	}
+
+	reverse_proxy minio:9000
+}

@@ -1,0 +1,42 @@
+{
+  "name": "be-voiced",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Be Voiced: upload a recording, read what was said, ask it questions and caption it.",
+  "scripts": {
+    "dev": "next dev --port 1500",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "db:migrate": "node scripts/migrate.mjs",
+    "worker": "node dist/server/worker.js",
+    "build:worker": "tsc -p tsconfig.worker.json && node scripts/finish-worker-build.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@huggingface/transformers": "^4.3.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "drizzle-orm": "^0.45.4",
+    "mediabunny": "^1.62.0",
+    "motion": "^13.3.0",
+    "next": "^16.4.2",
+    "pg-boss": "^12.38.0",
+    "postgres": "^3.4.9",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3"
+  }
+}

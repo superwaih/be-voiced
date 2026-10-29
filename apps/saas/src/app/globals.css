@@ -1,0 +1,287 @@
+/*
+ * Tailwind, wired to Be Voiced's design tokens.
+ *
+ * Every colour, radius and shadow below is mapped `inline`, so `bg-surface` compiles to
+ * `var(--surface)` rather than a frozen hex. One set of utilities then covers both themes: switch
+ * `data-theme` on <html> and the whole interface follows, with no `dark:` variant on every element.
+ *
+ * `dark:` is still available for the few places where dark mode needs a different rule rather than
+ * a different value — a hairline where light mode has a shadow, usually.
+ */
+
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* The theme is an attribute on <html>, not a class, so Tailwind's default `dark:` is redefined. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  /* next/font sets these two on <html>; this hands them to Tailwind's font utilities. */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+
+  /* Surfaces and text */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--text);
+  --color-muted: var(--text-2);
+  --color-faint: var(--text-3);
+
+  /* The plum accent */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-softer: var(--accent-softer);
+  --color-accent-line: var(--accent-line);
+  --color-accent-surface: var(--accent-surface);
+  --color-accent-surface-strong: var(--accent-surface-strong);
+
+  /* Navigation: plum in light mode, black in dark */
+  --color-rail: var(--rail-bg);
+  --color-rail-text: var(--rail-text);
+  --color-rail-ink: var(--rail-text-active);
+  --color-rail-active: var(--rail-active);
+  --color-rail-ring: var(--rail-active-ring);
+  --color-rail-line: var(--rail-line);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+
+  /* Everything else */
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-focus: var(--focus);
+  --color-stage: var(--stage);
+  --color-stage-ink: var(--stage-text);
+  --color-cover: var(--cover-bg);
+  --color-cover-2: var(--cover-bg-2);
+  --color-cover-bar: var(--cover-bar);
+  --color-cover-ink: var(--cover-ink);
+  --color-scrim: var(--scrim);
+
+  /* Shape rule: pills for controls, 10px for inputs, 14px for panels. */
+  --radius-control: 10px;
+  --radius-panel: 14px;
+
+  --shadow-pop: var(--shadow-pop);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+
+  /* A real viewport height on phones, where 100vh counts chrome that scrolls away. */
+  @supports (height: 100dvh) {
+    html,
+    body {
+      height: 100dvh;
+    }
+  }
+
+  body {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
+    /* Panels scroll inside themselves; the page behind them never does. */
+    overflow: hidden;
+    overscroll-behavior-y: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  button {
+    cursor: default;
+  }
+
+  input,
+  textarea,
+  [data-selectable] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  a {
+    color: var(--accent-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  /* Scrollbars that recede */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* A progress bar with no number to show still has to look like it is doing something. */
+@keyframes bv-sweep {
+  0% {
+    transform: translateX(-100%) scaleX(0.35);
+  }
+  100% {
+    transform: translateX(300%) scaleX(0.35);
+  }
+}
+
+/*
+ * Transcript word states.
+ *
+ * These are toggled imperatively while audio plays — class names are added and removed on spans
+ * sixty times a second rather than re-rendered — so they live here as named states instead of as
+ * utility strings in the markup.
+ */
+@layer components {
+  .tw-word {
+    border-radius: 4px;
+    padding: 0 1px;
+    transition: background-color 90ms ease;
+  }
+  .tw-word.is-now {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+  .tw-word.is-match {
+    background: var(--accent-softer);
+    box-shadow: inset 0 -1.5px 0 var(--accent-line);
+  }
+  .tw-word.is-match-current {
+    background: var(--accent-surface-strong);
+    box-shadow: inset 0 0 0 1px var(--accent-line);
+  }
+  .tw-word.is-unsure {
+    text-decoration: underline dotted var(--line-strong);
+    text-underline-offset: 3px;
+  }
+  .tw-seg.is-current .tw-speaker {
+    color: var(--accent-text);
+  }
+}
+
+/*
+ * Captions drawn over the picture.
+ *
+ * Sizes are in `cqmin` against the video box, so the preview scales exactly as the render does: a
+ * caption laid out here lands in the same place when the worker burns it in with libass. The values
+ * come from the caption style as custom properties — see `previewVars` in the engine.
+ */
+@layer components {
+  .cap-layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0 8%;
+    pointer-events: none;
+    container-type: size;
+  }
+  .cap-layer.is-bottom {
+    align-items: flex-end;
+    padding-bottom: var(--cap-offset);
+  }
+  .cap-layer.is-top {
+    align-items: flex-start;
+    padding-top: var(--cap-offset);
+  }
+  .cap-layer.is-middle {
+    align-items: center;
+  }
+  .cap-line {
+    text-align: center;
+    max-width: 100%;
+  }
+  .cap-text {
+    font-family: var(--cap-font);
+    font-size: var(--cap-size);
+    line-height: 1.28;
+    color: var(--cap-color);
+    -webkit-text-stroke: var(--cap-stroke) var(--cap-stroke-color);
+    paint-order: stroke fill;
+    text-shadow: var(--cap-shadow);
+    background: var(--cap-bg);
+    padding: var(--cap-pad);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    overflow-wrap: break-word;
+  }
+  .cap-word.is-active {
+    color: var(--cap-highlight);
+  }
+
+  /* Placed by hand: the anchor is the centre of the line, the same point libass uses. */
+  .cap-layer.is-free {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0;
+  }
+  .cap-layer.is-free .cap-line {
+    position: absolute;
+    left: var(--cap-x);
+    top: var(--cap-y);
+    transform: translate(-50%, -50%);
+    max-width: 84%;
+  }
+  .cap-layer.is-draggable .cap-line {
+    pointer-events: auto;
+    cursor: grab;
+    touch-action: none;
+  }
+  .cap-layer.is-draggable .cap-line:hover {
+    outline: 1px dashed color-mix(in srgb, var(--stage-text) 45%, transparent);
+    outline-offset: 6px;
+  }
+  .cap-layer.is-draggable .cap-line:active {
+    cursor: grabbing;
+  }
+}
+
+@layer utilities {
+  /* Timecodes and figures, which should line up in a column. */
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  /* Hides the scrollbar on a row that scrolls sideways, like a crowded toolbar. */
+  .no-bar {
+    scrollbar-width: none;
+  }
+  .no-bar::-webkit-scrollbar {
+    display: none;
+  }
+}

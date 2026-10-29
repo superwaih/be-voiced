@@ -2,7 +2,10 @@ import { CheckCircle, CloudArrowUp, DownloadSimple, FolderOpen, HardDrives, Key,
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, type ReactNode } from "react";
 import { Button, Field, IconButton, Progress, Segmented, Select, TextInput } from "../components/ui";
-import { errorMessage, ipc } from "../lib/ipc";
+import { errorMessage, ipc, platform } from "../lib/ipc";
+
+/** A few things here are about this machine: its keychain, its folders, its downloaded models. */
+const web = platform === "web";
 import { reportError, useApp } from "../store/app";
 
 export const WHISPER_LANGUAGES = [
@@ -209,7 +212,7 @@ function WhisperModels() {
                     <X />
                   </IconButton>
                 </span>
-              ) : m.installed ? (
+              ) : web ? null : m.installed ? (
                 <IconButton size="sm" label={`Delete ${m.label}`} onClick={() => void remove(m.id)}>
                   <Trash />
                 </IconButton>
@@ -242,43 +245,58 @@ export function SettingsView() {
         <header className="page-header">
           <div>
             <h1 className="page-title">Settings</h1>
-            <p className="page-sub">Transcription, keys and where finished files land.</p>
+            <p className="page-sub">{web ? "Transcription, quality and where finished files land." : "Transcription, keys and where finished files land."}</p>
           </div>
         </header>
 
-        <Section title="Transcription" description="Local keeps audio on this computer. Cloud is faster on long files and separates speakers.">
-          <Segmented<"local" | "cloud">
-            label="Default transcription mode"
-            value={settings.transcriptionMode}
-            onChange={(v) => void updateSettings({ transcriptionMode: v })}
-            options={[
-              { value: "local", label: <><HardDrives /> Local, Whisper</> },
-              { value: "cloud", label: <><CloudArrowUp /> Cloud, Deepgram</> },
-            ]}
-          />
+        <Section
+          title="Transcription"
+          description={
+            web
+              ? "Your recording is uploaded, transcribed on our servers and sent back as text you can read, search and caption."
+              : "Local keeps audio on this computer. Cloud is faster on long files and separates speakers."
+          }
+        >
+          {!web && (
+            <Segmented<"local" | "cloud">
+              label="Default transcription mode"
+              value={settings.transcriptionMode}
+              onChange={(v) => void updateSettings({ transcriptionMode: v })}
+              options={[
+                { value: "local", label: <><HardDrives /> Local, Whisper</> },
+                { value: "cloud", label: <><CloudArrowUp /> Cloud, Deepgram</> },
+              ]}
+            />
+          )}
           <div className="settings-grid">
-            <Field label="Whisper language" hint="English-only models always transcribe English.">
+            <Field label={web ? "Language" : "Whisper language"} hint="English-only models always transcribe English.">
               <Select value={settings.whisperLanguage} options={WHISPER_LANGUAGES} onChange={(v) => void updateSettings({ whisperLanguage: v })} />
             </Field>
-            <Field label="Deepgram language">
-              <Select value={settings.deepgramLanguage} options={DEEPGRAM_LANGUAGES} onChange={(v) => void updateSettings({ deepgramLanguage: v })} />
-            </Field>
+            {!web && (
+              <Field label="Deepgram language">
+                <Select value={settings.deepgramLanguage} options={DEEPGRAM_LANGUAGES} onChange={(v) => void updateSettings({ deepgramLanguage: v })} />
+              </Field>
+            )}
           </div>
           <div className="settings-subhead">
-            <h3>Whisper models</h3>
-            <p className="faint">Downloaded once from Hugging Face, then used offline.</p>
+            <h3>{web ? "Quality" : "Whisper models"}</h3>
+            <p className="faint">{web ? "Both run on our servers. Nothing downloads to your browser." : "Downloaded once from Hugging Face, then used offline."}</p>
           </div>
           <WhisperModels />
         </Section>
 
-        <Section title="Deepgram" description="Optional. Stored in your system keychain and used only from the app backend, so the key never reaches the interface.">
-          <ApiKeyRow
-            provider="deepgram"
-            name="Deepgram API key"
-            help="Cloud transcription with speaker labels, plus topic, intent and sentiment detection that sharpens suggested moments. Create a key at console.deepgram.com."
-          />
-          <p className="faint panel-note">Finding moments always runs on this computer. Without a key it uses the transcript alone.</p>
-        </Section>
+        {/* A Deepgram key is kept in the system keychain and used by the app's own backend. There is
+            no keychain in a browser, and the service holds its own keys. */}
+        {!web && (
+          <Section title="Deepgram" description="Optional. Stored in your system keychain and used only from the app backend, so the key never reaches the interface.">
+            <ApiKeyRow
+              provider="deepgram"
+              name="Deepgram API key"
+              help="Cloud transcription with speaker labels, plus topic, intent and sentiment detection that sharpens suggested moments. Create a key at console.deepgram.com."
+            />
+            <p className="faint panel-note">Finding moments always runs on this computer. Without a key it uses the transcript alone.</p>
+          </Section>
+        )}
 
         <Section title="Appearance">
           <Segmented<"system" | "light" | "dark">
@@ -294,37 +312,61 @@ export function SettingsView() {
         </Section>
 
         <Section title="Exports">
-          <Field label="Save exported clips to">
-            <div className="path-row">
-              <span className="path mono truncate" title={settings.exportDir ?? ""} data-selectable>
-                {settings.exportDir ?? "Not set"}
-              </span>
-              <Button icon={<FolderOpen />} onClick={() => void chooseExportDir()}>
-                Change
-              </Button>
-            </div>
-          </Field>
+          {web ? (
+            <p className="faint">Finished files download the way everything else does, to wherever your browser keeps downloads.</p>
+          ) : (
+            <Field label="Save exported clips to">
+              <div className="path-row">
+                <span className="path mono truncate" title={settings.exportDir ?? ""} data-selectable>
+                  {settings.exportDir ?? "Not set"}
+                </span>
+                <Button icon={<FolderOpen />} onClick={() => void chooseExportDir()}>
+                  Change
+                </Button>
+              </div>
+            </Field>
+          )}
         </Section>
 
-        <Section title="Media engine" description="FFmpeg, whisper.cpp and yt-dlp ship inside the app. yt-dlp is what turns a pasted link into media.">
+        <Section
+          title="Media engine"
+          description={
+            web
+              ? "Audio is processed on our servers. Nothing is installed in your browser."
+              : "FFmpeg, whisper.cpp and yt-dlp ship inside the app. yt-dlp is what turns a pasted link into media."
+          }
+        >
           <ul className="engine-list">
-            {[
-              { name: "FFmpeg", ok: sidecars?.ffmpeg },
-              { name: "ffprobe", ok: sidecars?.ffprobe },
-              { name: "whisper.cpp", ok: sidecars?.whisper },
-              { name: "yt-dlp", ok: sidecars?.ytdlp },
-            ].map((e) => (
+            {(web
+              ? [
+                  { name: "Transcription", ok: sidecars?.whisper },
+                  { name: "Media handling", ok: sidecars?.ffmpeg },
+                  { name: "Link downloads", ok: sidecars?.ytdlp },
+                ]
+              : [
+                  { name: "FFmpeg", ok: sidecars?.ffmpeg },
+                  { name: "ffprobe", ok: sidecars?.ffprobe },
+                  { name: "whisper.cpp", ok: sidecars?.whisper },
+                  { name: "yt-dlp", ok: sidecars?.ytdlp },
+                ]
+            ).map((e) => (
               <li key={e.name} className={e.ok ? "is-ok" : "is-missing"}>
                 {e.ok ? <CheckCircle weight="fill" /> : <WarningCircle weight="fill" />}
                 <span className="strong">{e.name}</span>
-                <span className="faint">{e.ok ? "Bundled" : "Missing from this build"}</span>
+                <span className="faint">{e.ok ? (web ? "Available" : "Bundled") : web ? "Desktop only" : "Missing from this build"}</span>
               </li>
             ))}
           </ul>
           {sidecars && (!sidecars.ffmpeg || !sidecars.ffprobe || !sidecars.whisper || !sidecars.ytdlp) && (
             <p className="faint engine-note" data-selectable>
-              Developer builds need the sidecar binaries in src-tauri/binaries. Run <code>pnpm sidecars</code>, then restart the app.
-              Expected folder: {sidecars.folder}
+              {web ? (
+                <>Pasting links is a desktop feature: the app downloads the media on your own machine. Upload a file here instead.</>
+              ) : (
+                <>
+                  Developer builds need the sidecar binaries in src-tauri/binaries. Run <code>pnpm sidecars</code>, then restart the app.
+                  Expected folder: {sidecars.folder}
+                </>
+              )}
             </p>
           )}
         </Section>

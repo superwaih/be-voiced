@@ -18,6 +18,7 @@ import { usePeaks } from "../../store/peaks";
 import { sampleWave } from "@be-voiced/engine/wave";
 import { Button, EmptyState, IconButton, InlineEdit, Popover, Progress, Segmented } from "../../components/ui";
 import { findMoments } from "../../lib/actions";
+import { platform } from "../../lib/ipc";
 import { clock, duration } from "@be-voiced/engine/format";
 import { player, usePlayerState } from "../../lib/player";
 import { CATEGORY_LABEL } from "@be-voiced/engine/project";
@@ -106,8 +107,8 @@ export function HighlightsPanel({ selectedClipId, onSelectClip }: { selectedClip
           body={
             <>
               Reads the whole conversation and picks what you would watch with only a few minutes: strong takes, clear answers,
-              stories and quotable lines. Runs on this computer.
-              {!hasDeepgram && " Add a Deepgram key to also detect topics."}
+              stories and quotable lines.{platform === "web" ? "" : " Runs on this computer."}
+              {!hasDeepgram && platform !== "web" && " Add a Deepgram key to also detect topics."}
             </>
           }
           action={
@@ -115,7 +116,7 @@ export function HighlightsPanel({ selectedClipId, onSelectClip }: { selectedClip
               <Button variant="primary" icon={<Sparkle />} onClick={() => void findMoments("initial")}>
                 Find moments
               </Button>
-              {!hasDeepgram && (
+              {!hasDeepgram && platform !== "web" && (
                 <Button variant="ghost" onClick={() => setView("settings")}>
                   Add Deepgram key
                 </Button>

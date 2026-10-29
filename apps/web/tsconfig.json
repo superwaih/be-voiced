@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    /* The desktop sources are compiled as part of this app, so the Tauri modules they import have
+       to resolve to something. Vite performs the same substitution for the bundle; see
+       vite.config.ts, which also swaps lib/ipc.ts itself — a thing tsconfig paths cannot express,
+       because that import is relative. src/platform/contract.ts checks the two agree. */
+    "paths": {
+      "@tauri-apps/api/core": ["./src/platform/tauri-core.ts"],
+      "@tauri-apps/api/event": ["./src/platform/tauri-event.ts"],
+      "@tauri-apps/api/webview": ["./src/platform/tauri-webview.ts"],
+      "@tauri-apps/api/window": ["./src/platform/tauri-window.ts"],
+      "@tauri-apps/plugin-dialog": ["./src/platform/tauri-dialog.ts"]
+    }
+  },
+  "include": ["src"]
+}

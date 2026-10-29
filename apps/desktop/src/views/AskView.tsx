@@ -21,7 +21,7 @@ import { Button, EmptyState, IconButton, Popover, Progress, Segmented, TextInput
 import { ask, suggestedQuestions, type AskResult } from "@be-voiced/engine/ask";
 import { findMoments as findMomentsFor, importLink, loadProjectQuietly, openProject } from "../lib/actions";
 import { clock, duration, relativeDate } from "@be-voiced/engine/format";
-import { errorMessage, ipc } from "../lib/ipc";
+import { errorMessage, ipc, platform } from "../lib/ipc";
 import { player, usePlayerTime } from "../lib/player";
 import { segmentText } from "@be-voiced/engine/transcript";
 import type { AskEntry, ChatMessage, Citation, LinkInfo, ProjectMeta } from "@be-voiced/engine/types";
@@ -116,7 +116,14 @@ function LinkBox({ autoFocus = false, onImported }: { autoFocus?: boolean; onImp
       )}
       {!error && !ytdlp && (
         <p className="faint linkbox-note">
-          Podcast and direct media links work in this build. For X, YouTube and other sites, run <code>pnpm sidecars yt-dlp</code> and restart.
+          {platform === "web" ? (
+            <>Pasting links needs the desktop app, which downloads the media on your own machine. Upload a file to read and ask about it here.</>
+          ) : (
+            <>
+              Podcast and direct media links work in this build. For X, YouTube and other sites, run <code>pnpm sidecars yt-dlp</code> and
+              restart.
+            </>
+          )}
         </p>
       )}
 
@@ -609,7 +616,9 @@ export function AskView() {
               <JobCard job={job} />
               <p className="faint">
                 {job.kind === "transcribe"
-                  ? "Transcribing runs on this computer. Long recordings take a few minutes, and you can keep working in other tabs."
+                  ? platform === "web"
+                    ? "Transcribing runs on our servers. Long recordings take a few minutes, and you can keep working in other tabs."
+                    : "Transcribing runs on this computer. Long recordings take a few minutes, and you can keep working in other tabs."
                   : "Reading the conversation for the moments worth publishing."}
               </p>
             </div>
@@ -620,7 +629,9 @@ export function AskView() {
                 title={project.transcript ? "Ask this recording anything" : "Transcribe it first"}
                 body={
                   project.transcript
-                    ? "Answers are built from the transcript on this computer and always point at the moment they came from."
+                    ? platform === "web"
+                      ? "Answers are built from the transcript itself and always point at the moment they came from."
+                      : "Answers are built from the transcript on this computer and always point at the moment they came from."
                     : "This recording has no transcript yet. Make one here and the answers follow."
                 }
                 action={

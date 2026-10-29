@@ -17,6 +17,7 @@ import {
 import { Fragment, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Button, EmptyState, IconButton, Menu, Popover, Progress, TextInput } from "../../components/ui";
 import { clipFromSelection } from "../../lib/actions";
+import { platform } from "../../lib/ipc";
 import { clock, duration as fmtDuration } from "@be-voiced/engine/format";
 import { player, usePlayerTime } from "../../lib/player";
 import {
@@ -86,7 +87,11 @@ export function TranscriptPanel({
           <EmptyState
             icon={<TextAa />}
             title="No transcript yet"
-            body="Transcribe locally with Whisper to keep audio on this computer, or use Deepgram for speaker labels."
+            body={
+              platform === "web"
+                ? "Transcribe this recording to read it, search it, pull moments out of it and caption it."
+                : "Transcribe locally with Whisper to keep audio on this computer, or use Deepgram for speaker labels."
+            }
             action={
               <Button variant="primary" onClick={onOpenTranscribe}>
                 Transcribe

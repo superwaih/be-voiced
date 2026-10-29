@@ -1,0 +1,23 @@
+# The build context is this directory, and `COPY . .` would otherwise bring the host's
+# node_modules with it — built on a different OS, and large enough to make the context
+# slower to send than the image is to build. pnpm installs its own inside the image.
+node_modules
+.next
+dist
+out
+
+# Build caches and local state, none of which belong in an image.
+*.tsbuildinfo
+.env
+.env.*.local
+.git
+.gitignore
+
+# Documentation and compose files: read on the host, never needed inside.
+DEPLOY.md
+README.md
+AGENTS.md
+docker-compose*.yml
+Caddyfile
+.dockerignore
+Dockerfile

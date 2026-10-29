@@ -1,0 +1,136 @@
+# Be Voiced on one box.
+#
+# Everything the product needs, on a single VPS: the app, the workers, Postgres, object storage and
+# TLS. Contabo gives a lot of cores for the money, which is what this workload wants.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build --scale worker=3
+#
+# Scaling is manual and deliberate: `--scale worker=N` is the only dial. There is no autoscaler on
+# a fixed box — you buy cores and decide how many of them transcribe. To go beyond one machine,
+# run this file's `worker` service on a second box pointed at the same DATABASE_URL and S3
+# endpoint; workers hold no state, so nothing else has to change.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    depends_on: [app]
+
+  # Runs to completion before anything that reads the database starts. Applying migrations from
+  # inside the app would race between app and workers on a cold box, and the app image does not
+  # contain the migration files in any case.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/bevoiced
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  app:
+    build:
+      context: .
+      target: app
+      args:
+        WHISPER_MODEL: ${WHISPER_MODEL:-ggml-base.en.bin}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD}@postgres:5432/bevoiced
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: recordings
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-bevoiced}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      # Browsers upload straight to storage, so the presigned URL has to be signed against the
+      # address the browser will actually request — see the note in the Caddyfile.
+      S3_PUBLIC_ENDPOINT: https://storage.${DOMAIN}
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      minio-setup: { condition: service_completed_successfully }
+
+  # The only service worth scaling. Each one takes a single job at a time.
+  worker:
+    build:
+      context: .
+      target: worker
+      args:
+        WHISPER_MODEL: ${WHISPER_MODEL:-ggml-base.en.bin}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD}@postgres:5432/bevoiced
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: recordings
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-bevoiced}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      WORKER_CONCURRENCY: 1
+      # Threads per job. cores ÷ workers is the rule; leave one for the app and Postgres.
+      WHISPER_THREADS: ${WHISPER_THREADS:-2}
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      minio-setup: { condition: service_completed_successfully }
+    deploy:
+      resources:
+        limits:
+          # Keeps one runaway job from starving the app. Match it to WHISPER_THREADS.
+          cpus: "${WORKER_CPUS:-2}"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bevoiced
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: bevoiced
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bevoiced"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-bevoiced}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      # The browser PUTs its upload to storage.DOMAIN while sitting on DOMAIN, which is a
+      # cross-origin request; without this the preflight fails and no upload ever starts.
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${DOMAIN}
+    volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio-setup:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY_ID:-bevoiced} ${S3_SECRET_ACCESS_KEY} &&
+      mc mb --ignore-existing local/recordings &&
+      echo 'bucket ready'
+      "
+
+volumes:
+  pgdata:
+  miniodata:
+  caddy_data:
+  caddy_config:

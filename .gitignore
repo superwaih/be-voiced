@@ -33,3 +33,10 @@ apps/desktop/src-tauri/binaries/*
 # Build output
 dist
 apps/*/dist
+
+# pnpm's local content-addressed store, created by a store-dir setting in this checkout.
+.pnpm-store/
+
+# A stray Tauri build directory at the repo root, left over from the move to apps/*.
+# The real one is apps/desktop/src-tauri; this holds only compiled output.
+/src-tauri/

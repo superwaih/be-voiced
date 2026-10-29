@@ -1,0 +1,324 @@
+/* ----------------------------------------------------------------------------------------------
+ * Be Voiced on a narrow screen.
+ *
+ * The desktop stylesheets assume a window: a 248px rail beside a sheet, and panel layouts that
+ * hold their own scroll. A browser is any width, so this file — the only stylesheet the web app
+ * adds — bends that shape down to a phone and nothing else. It overrides, never redefines: every
+ * colour, font and radius still comes from the desktop's own tokens.
+ *
+ * Three steps:
+ *   ≤1024px  side-by-side panels become one column that scrolls
+ *   ≤900px   the rail becomes a row of tabs along the bottom
+ *   ≤560px   phone spacing, and grids that were still two-up go single
+ * -------------------------------------------------------------------------------------------- */
+
+/* A real viewport height on mobile browsers, where 100vh includes the chrome that scrolls away. */
+html,
+body,
+#root {
+  height: 100%;
+}
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+/* Panels scroll inside themselves; the page behind them never should. */
+body {
+  overscroll-behavior-y: none;
+}
+
+/* ---- ≤1024px: one column of panels ---------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .ws-body,
+  .captions-body,
+  .editor-body,
+  .ask-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    /* Stacked panels are taller than the sheet, so the stack itself scrolls. */
+    overflow: auto;
+    padding: 0 14px 16px;
+  }
+  /* Each panel keeps a usable height instead of collapsing to its content. */
+  .ws-body > section,
+  .ask-chat,
+  .ask-pane,
+  .editor-side {
+    min-height: min(68vh, 560px);
+  }
+  .captions-main,
+  .editor-main {
+    min-height: min(70vh, 600px);
+  }
+  .captions-side {
+    min-height: auto;
+  }
+
+  .ws-header,
+  .captions-header,
+  .editor-header,
+  .ask-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  /* The editor header is a three-column grid centred on the clip title. */
+  .editor-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+  .ask-linkbar {
+    padding: 0 14px 10px;
+  }
+  .page-inner {
+    padding: 26px 20px 44px;
+  }
+}
+
+/* ---- ≤900px: the rail becomes a tab bar ----------------------------------------------------- */
+@media (max-width: 900px) {
+  .shell,
+  :root[data-sidebar="collapsed"] .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .shell-main {
+    grid-row: 1;
+    margin: 8px 8px 0;
+    border-radius: 18px;
+  }
+
+  .side,
+  .side.is-collapsed {
+    grid-row: 2;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 2px;
+    padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .side::-webkit-scrollbar {
+    display: none;
+  }
+  /* The wordmark and the collapse toggle have no place in a tab bar. */
+  .side-top {
+    display: none;
+  }
+  .side-group,
+  .side-bottom {
+    flex-direction: row;
+    gap: 2px;
+    margin-top: 0;
+  }
+
+  /* Tabs: icon over label, as narrow as their text. The rail version is full width; a row of
+     full-width items would stack on top of each other. */
+  .side-item,
+  .side.is-collapsed .side-item {
+    flex: 0 0 auto;
+    width: auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 54px;
+    padding: 5px 10px;
+    border-radius: 16px;
+    white-space: nowrap;
+  }
+  .side-active {
+    border-radius: 16px;
+  }
+  .side-chip,
+  .side.is-collapsed .side-chip {
+    width: 26px;
+    height: 26px;
+    background: transparent;
+  }
+  .side-item.is-active .side-chip,
+  :root[data-theme="dark"] .side-item.is-active .side-chip {
+    background: transparent;
+    color: inherit;
+  }
+  .side-label,
+  .side.is-collapsed .side-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  /* The job ring and the recording you are editing stay, as icons. */
+  .side-jobs,
+  .side.is-collapsed .side-jobs {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 54px;
+    padding: 5px 10px;
+    border-radius: 16px;
+  }
+  .side-jobs-text,
+  .side.is-collapsed .side-jobs-text {
+    display: none;
+  }
+  .side-project,
+  .side.is-collapsed .side-project {
+    flex: none;
+    width: auto;
+    margin: 0;
+    padding: 6px;
+    border-radius: 16px;
+  }
+  .side-project-text {
+    display: none;
+  }
+  .side-project-cover {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Dropping a file is a desktop gesture; the overlay would cover the tab bar. */
+  .drop-overlay {
+    display: none;
+  }
+
+  .page-header {
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .page-title {
+    font-size: 26px;
+  }
+  .page-inner {
+    padding: 22px 16px 36px;
+  }
+
+  /* Settings: label above field rather than beside it. */
+  .settings-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Home and library grids that were still two-up. */
+  .home-hero,
+  .home-grid,
+  .now-editing,
+  .shelf,
+  .maker-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home {
+    padding-top: 22px;
+  }
+}
+
+/* ---- ≤560px: phone -------------------------------------------------------------------------- */
+@media (max-width: 560px) {
+  .shell-main {
+    margin: 6px 6px 0;
+    border-radius: 14px;
+  }
+  .page-inner {
+    padding: 18px 14px 30px;
+  }
+  .page-title {
+    font-size: 23px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .ws-body,
+  .captions-body,
+  .editor-body,
+  .ask-body {
+    padding: 0 10px 12px;
+  }
+  .ws-header,
+  .captions-header,
+  .editor-header,
+  .ask-header {
+    padding: 10px 12px;
+  }
+  .ws-name,
+  .captions-title h1 {
+    font-size: 17px;
+    max-width: 100%;
+  }
+  /* Long action rows scroll rather than squeezing the title out of the header. */
+  .ws-actions,
+  .captions-actions,
+  .editor-actions,
+  .ask-actions {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ws-actions::-webkit-scrollbar,
+  .captions-actions::-webkit-scrollbar,
+  .editor-actions::-webkit-scrollbar,
+  .ask-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ask-linkbar {
+    flex-direction: column;
+    padding: 0 12px 10px;
+  }
+  .ask-linkbar .linkbox {
+    width: 100%;
+  }
+
+  .stat-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setlist-row {
+    grid-template-columns: 24px minmax(0, 1fr) 54px;
+  }
+  .setlist-row > :nth-child(4) {
+    display: none;
+  }
+  .reading-row {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+  .reading-arrow {
+    display: none;
+  }
+  .model-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .engine-list li {
+    grid-template-columns: 16px minmax(0, 1fr);
+    row-gap: 2px;
+  }
+  .engine-list li .faint {
+    grid-column: 2;
+  }
+
+  /* Panels get most of the screen when there is only one of them visible at a time. */
+  .ws-body > section,
+  .ask-chat,
+  .ask-pane,
+  .editor-side,
+  .captions-main,
+  .editor-main {
+    min-height: min(76vh, 620px);
+  }
+}
+
+/* A caption dragged onto the video must not also drag the page on a touch screen. */
+.cap-layer,
+.cap-line {
+  touch-action: none;
+}

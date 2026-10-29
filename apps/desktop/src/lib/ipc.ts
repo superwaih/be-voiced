@@ -20,10 +20,18 @@ import type {
 } from "@be-voiced/engine/types";
 
 /**
+ * Which bridge this build talks to. The web build substitutes this whole module, so the few
+ * sentences in the interface that only make sense on one platform can ask.
+ */
+export const platform: "desktop" | "web" = "desktop";
+
+/**
+ * Whether the bridge behind `ipc` is actually there.
+ *
  * Checked on call, not at import: the dev QA harness installs Tauri's IPC mocks after this module
  * is first loaded, and a value frozen at import time would miss them.
  */
-export const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+export const bridgeReady = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export class AppError extends Error {
   kind: AppErrorPayload["kind"];

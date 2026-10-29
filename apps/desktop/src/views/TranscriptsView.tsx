@@ -4,11 +4,15 @@ import { useMemo, useState } from "react";
 import { ProjectCover } from "../components/Covers";
 import { Button, EmptyState, TextInput } from "../components/ui";
 import { openProject } from "../lib/actions";
+import { platform } from "../lib/ipc";
 import { duration, relativeDate } from "@be-voiced/engine/format";
 import { useApp } from "../store/app";
 import { chooseAndImport, rise } from "./HomeView";
 
-const ENGINE_LABEL = { whisper: "Whisper, on this computer", deepgram: "Deepgram" } as const;
+const ENGINE_LABEL = {
+  whisper: platform === "web" ? "Whisper, on our servers" : "Whisper, on this computer",
+  deepgram: "Deepgram",
+} as const;
 
 export function TranscriptsView() {
   const library = useApp((s) => s.library);

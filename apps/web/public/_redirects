@@ -1,0 +1,2 @@
+# Every route is served by the single page; the router reads the path from there.
+/*  /index.html  200

@@ -14,8 +14,19 @@ import { clock } from "./format";
 import { buildUnits, speakerTalkTime, type Unit } from "./transcript";
 import type { AnswerEngine, Citation, Project, TextIntelligence, Transcript } from "./types";
 
+/**
+ * What answering needs to know about a recording. Narrower than a desktop project on purpose, so
+ * the web app can ask questions without constructing one.
+ */
+export interface AskSubject {
+  name: string;
+  source: { duration: number };
+  clips: Project["clips"];
+  topics: Project["topics"];
+}
+
 export interface AskContext {
-  project: Project;
+  project: AskSubject;
   transcript: Transcript;
   intel: TextIntelligence | null;
 }

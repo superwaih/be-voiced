@@ -17,6 +17,7 @@ import {
 import { captionAnchor, defaultCaptionStyle } from "@be-voiced/engine/captions";
 import { clock, duration, relativeDate, safeFileName } from "@be-voiced/engine/format";
 import { player, usePlayerTime } from "../lib/player";
+import { platform } from "../lib/ipc";
 import { flattenWords } from "@be-voiced/engine/transcript";
 import type { AspectRatio, CaptionStyle, Clip, ProjectMeta, Project, Resolution } from "@be-voiced/engine/types";
 import { useApp } from "../store/app";
@@ -380,7 +381,9 @@ export function CaptionsView() {
               </Field>
             </div>
             <p className="block-note faint">
-              Saved as {safeFileName(fileName || project.name)}.mp4 in your export folder, with the subtitles drawn into the picture.
+              {platform === "web"
+                ? `Rendered on our servers and downloaded as ${safeFileName(fileName || project.name)}.mp4, with the subtitles drawn into the picture.`
+                : `Saved as ${safeFileName(fileName || project.name)}.mp4 in your export folder, with the subtitles drawn into the picture.`}
             </p>
             <div className="button-row">
               <Button size="sm" disabled={!project.transcript} onClick={() => void exportClipCaptions(clip, "srt")}>
