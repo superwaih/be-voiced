@@ -423,7 +423,7 @@ export function findMoments(t: Transcript, opts: FindOptions): AnalyzeResult {
   });
 
   return {
-    model: opts.intel ? "Be Voiced moment finder with Deepgram text intelligence" : "Be Voiced moment finder",
+    model: opts.intel ? "Soundbite moment finder with Deepgram text intelligence" : "Soundbite moment finder",
     topics: opts.intel ? topicsFromIntel(units, opts.intel) : topicsFromKeywords(units),
     highlights,
     inputTokens: 0,

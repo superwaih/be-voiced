@@ -10,7 +10,7 @@ import postgres from "postgres";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dir = join(here, "..", "src", "server", "db", "migrations");
-const url = process.env.DATABASE_URL ?? "postgres://bevoiced:bevoiced@localhost:5432/bevoiced";
+const url = process.env.DATABASE_URL ?? "postgres://soundbite:soundbite@localhost:5432/soundbite";
 
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 

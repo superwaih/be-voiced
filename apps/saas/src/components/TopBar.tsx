@@ -19,7 +19,7 @@ export function TopBar() {
     <header className="flex flex-none items-center justify-between gap-2 px-3 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 text-rail-text lg:hidden">
       <Link href="/" className="flex min-w-0 items-center gap-[11px] px-1.5 text-rail-ink">
         <BrandMark />
-        <span className="text-[17px] font-bold tracking-[-0.025em] whitespace-nowrap">Be Voiced</span>
+        <span className="text-[17px] font-bold tracking-[-0.025em] whitespace-nowrap">Soundbite</span>
       </Link>
 
       <button

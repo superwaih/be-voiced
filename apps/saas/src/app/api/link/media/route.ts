@@ -18,7 +18,7 @@ import { ytdlp as ytdlpPath } from "@/server/config";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const UA = "Mozilla/5.0 (compatible; BeVoiced/0.1)";
+const UA = "Mozilla/5.0 (compatible; Soundbite/0.1)";
 
 function safeUrl(raw: string): URL {
   const url = new URL(raw);

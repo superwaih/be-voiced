@@ -10,7 +10,7 @@ import * as schema from "./schema";
  */
 const globalForDb = globalThis as unknown as { __sql?: ReturnType<typeof postgres> };
 
-const url = process.env.DATABASE_URL ?? "postgres://bevoiced:bevoiced@localhost:5432/bevoiced";
+const url = process.env.DATABASE_URL ?? "postgres://soundbite:soundbite@localhost:5432/soundbite";
 
 export const sql = globalForDb.__sql ?? postgres(url, { max: 10, onnotice: () => {} });
 if (process.env.NODE_ENV !== "production") globalForDb.__sql = sql;

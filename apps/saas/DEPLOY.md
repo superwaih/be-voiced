@@ -41,7 +41,7 @@ fixed box converts a spike into a wait, and the only answers are more cores or m
 ```bash
 # On the VPS, as root
 apt update && apt install -y docker.io docker-compose-plugin git
-git clone <your repo> be-voiced && cd be-voiced/apps/saas
+git clone <your repo> soundbite && cd soundbite/apps/saas
 ```
 
 Point **two** A records at the VPS before the first start, both to the same IP:
@@ -108,7 +108,7 @@ Watch the queue to know whether N is right:
 
 ```bash
 docker compose -f docker-compose.prod.yml exec postgres \
-  psql -U bevoiced -c "SELECT status, count(*) FROM jobs GROUP BY status;"
+  psql -U soundbite -c "SELECT status, count(*) FROM jobs GROUP BY status;"
 ```
 
 A `queued` count that never falls to zero means you are under-provisioned. A worker that is idle
@@ -147,7 +147,7 @@ Create a bucket and an API token scoped to it, then add to `.env`:
 
 ```bash
 BACKUP_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
-BACKUP_S3_BUCKET=bevoiced-backups
+BACKUP_S3_BUCKET=soundbite-backups
 BACKUP_S3_ACCESS_KEY_ID=<token id>
 BACKUP_S3_SECRET_ACCESS_KEY=<token secret>
 
@@ -193,8 +193,8 @@ docker compose -f docker-compose.prod.yml stop app worker
 docker compose -f docker-compose.prod.yml run --rm --entrypoint sh backup -c '
   set -e
   mc alias set b "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY_ID" "$BACKUP_S3_SECRET_ACCESS_KEY"
-  mc cp b/$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/bevoiced-20261029T031700Z.dump /tmp/r.dump
-  PGPASSWORD="$POSTGRES_PASSWORD" pg_restore     --host=postgres --username=bevoiced --dbname=bevoiced     --clean --if-exists --no-owner --no-privileges --single-transaction /tmp/r.dump'
+  mc cp b/$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/soundbite-20261029T031700Z.dump /tmp/r.dump
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_restore     --host=postgres --username=soundbite --dbname=soundbite     --clean --if-exists --no-owner --no-privileges --single-transaction /tmp/r.dump'
 
 docker compose -f docker-compose.prod.yml start app worker
 ```
@@ -207,7 +207,7 @@ To rehearse without touching production, restore into a scratch database instead
 with `--dbname=rehearsal` after `createdb`:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec postgres createdb -U bevoiced rehearsal
+docker compose -f docker-compose.prod.yml exec postgres createdb -U soundbite rehearsal
 ```
 
 ### What is not covered

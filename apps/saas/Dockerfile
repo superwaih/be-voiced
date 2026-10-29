@@ -1,4 +1,4 @@
-# Be Voiced, as three images from one build: the web app, the worker that transcribes, and a
+# Soundbite, as three images from one build: the web app, the worker that transcribes, and a
 # one-shot that applies migrations.
 #
 # App and worker are separate because they fail and scale differently. The web app must stay

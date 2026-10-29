@@ -1,5 +1,5 @@
 /*
- * Tailwind, wired to Be Voiced's design tokens.
+ * Tailwind, wired to Soundbite's design tokens.
  *
  * Every colour, radius and shadow below is mapped `inline`, so `bg-surface` compiles to
  * `var(--surface)` rather than a frozen hex. One set of utilities then covers both themes: switch

@@ -225,10 +225,16 @@ const FIELD_SHELL =
 
 export function TextInput({
   icon,
+  trailing,
   className,
   ref,
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; ref?: Ref<HTMLInputElement> }) {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  icon?: ReactNode;
+  /** A control inside the field, after the text: a reveal toggle, a unit, a clear button. */
+  trailing?: ReactNode;
+  ref?: Ref<HTMLInputElement>;
+}) {
   return (
     <span className={cx(FIELD_SHELL, className)}>
       {icon && <span className="ml-[11px] shrink-0 text-faint [&_svg]:size-4">{icon}</span>}
@@ -237,10 +243,12 @@ export function TextInput({
         spellCheck={false}
         className={cx(
           "h-full min-w-0 flex-1 border-0 bg-transparent outline-0 placeholder:text-faint",
-          icon ? "pr-3 pl-2" : "px-3",
+          icon ? "pl-2" : "pl-3",
+          trailing ? "pr-1" : "pr-3",
         )}
         {...rest}
       />
+      {trailing && <span className="mr-1 shrink-0">{trailing}</span>}
     </span>
   );
 }

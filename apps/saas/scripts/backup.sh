@@ -20,8 +20,8 @@ die() { log "FAILED: $*"; exit 1; }
 : "${BACKUP_S3_SECRET_ACCESS_KEY:?BACKUP_S3_SECRET_ACCESS_KEY is not set}"
 
 PGHOST="${PGHOST:-postgres}"
-PGUSER="${PGUSER:-bevoiced}"
-PGDATABASE="${PGDATABASE:-bevoiced}"
+PGUSER="${PGUSER:-soundbite}"
+PGDATABASE="${PGDATABASE:-soundbite}"
 PREFIX="${BACKUP_S3_PREFIX:-postgres}"
 RETAIN_DAYS="${BACKUP_RETAIN_DAYS:-14}"
 

@@ -39,8 +39,8 @@ function make(forEndpoint: string): S3Client {
     // MinIO serves buckets as a path, not a subdomain; R2 is happy either way.
     forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",
     credentials: {
-      accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "bevoiced",
-      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "bevoiced123",
+      accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "soundbite",
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "soundbite123",
     },
   });
 }

@@ -169,7 +169,7 @@ export function Nav() {
           <Link href="/" className={cx("flex min-w-0 items-center gap-[11px] px-1.5 text-rail-ink", collapsed && "lg:px-0")}>
             <BrandMark />
             <span className={cx("text-[17px] font-bold tracking-[-0.025em] whitespace-nowrap", collapsed && "lg:hidden")}>
-              Be Voiced
+              Soundbite
             </span>
           </Link>
 

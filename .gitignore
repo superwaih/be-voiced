@@ -40,3 +40,14 @@ apps/*/dist
 # A stray Tauri build directory at the repo root, left over from the move to apps/*.
 # The real one is apps/desktop/src-tauri; this holds only compiled output.
 /src-tauri/
+
+# Installed third-party agent skills, and the working files their scripts write.
+.agents/
+.taste-skill/
+apps/*/.taste-skill/
+
+# Next build output, wherever it lands.
+.next/
+
+# Agent skills are installed per machine, not vendored into the repo.
+.claude/skills/

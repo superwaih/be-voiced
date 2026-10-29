@@ -39,7 +39,7 @@ const KEEP_FINISHED_MS = 10 * 60 * 1000;
 
 export async function createJob(): Promise<Job> {
   const id = crypto.randomUUID();
-  const dir = await mkdtemp(join(tmpdir(), "bevoiced-"));
+  const dir = await mkdtemp(join(tmpdir(), "soundbite-"));
   const job: Job = {
     id,
     status: "preparing",

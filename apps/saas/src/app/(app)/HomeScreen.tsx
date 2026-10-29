@@ -155,7 +155,7 @@ export function HomeScreen() {
             <Card className="h-full">
               <h2 className="mb-1.5 text-base font-bold tracking-[-0.02em]">Your first recording</h2>
               <p className="text-muted">
-                Import a podcast, interview, webinar or meeting. Be Voiced transcribes it, finds the strongest moments and gets
+                Import a podcast, interview, webinar or meeting. Soundbite transcribes it, finds the strongest moments and gets
                 them ready to post.
               </p>
             </Card>
@@ -252,7 +252,7 @@ export function HomeScreen() {
               <div className="mt-2 flex items-center gap-2 font-semibold text-ink">
                 <Sparkle /> Then: find the moments
               </div>
-              <p>Be Voiced reads the whole conversation and picks the parts worth posting, with the reason for each.</p>
+              <p>Soundbite reads the whole conversation and picks the parts worth posting, with the reason for each.</p>
             </div>
           </Card>
         </motion.section>

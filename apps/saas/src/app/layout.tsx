@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Be Voiced", template: "%s · Be Voiced" },
+  title: { default: "Soundbite", template: "%s · Soundbite" },
   description: "Upload a recording, read what was said, ask it questions and caption it.",
   icons: { icon: "/favicon.svg" },
 };

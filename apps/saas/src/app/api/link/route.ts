@@ -26,7 +26,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const run = promisify(execFile);
-const UA = "Mozilla/5.0 (compatible; BeVoiced/0.1)";
+const UA = "Mozilla/5.0 (compatible; Soundbite/0.1)";
 const MEDIA = /\.(mp4|mov|mkv|webm|mp3|wav|m4a|aac|ogg|opus|flac)(\?|$)/i;
 
 // Re-exported so the media route uses exactly the same resolution: env, then ./bin, then PATH.

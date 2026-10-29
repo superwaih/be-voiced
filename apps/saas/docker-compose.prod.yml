@@ -1,4 +1,4 @@
-# Be Voiced on one box.
+# Soundbite on one box.
 #
 # Everything the product needs, on a single VPS: the app, the workers, Postgres, object storage and
 # TLS. Contabo gives a lot of cores for the money, which is what this workload wants.
@@ -32,7 +32,7 @@ services:
       target: migrate
     restart: "no"
     environment:
-      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/bevoiced
+      DATABASE_URL: postgres://soundbite:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/soundbite
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -44,10 +44,10 @@ services:
         WHISPER_MODEL: ${WHISPER_MODEL:-ggml-base.en.bin}
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD}@postgres:5432/bevoiced
+      DATABASE_URL: postgres://soundbite:${POSTGRES_PASSWORD}@postgres:5432/soundbite
       S3_ENDPOINT: http://minio:9000
       S3_BUCKET: recordings
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-bevoiced}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-soundbite}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
       # Browsers upload straight to storage, so the presigned URL has to be signed against the
       # address the browser will actually request — see the note in the Caddyfile.
@@ -67,10 +67,10 @@ services:
         WHISPER_MODEL: ${WHISPER_MODEL:-ggml-base.en.bin}
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://bevoiced:${POSTGRES_PASSWORD}@postgres:5432/bevoiced
+      DATABASE_URL: postgres://soundbite:${POSTGRES_PASSWORD}@postgres:5432/soundbite
       S3_ENDPOINT: http://minio:9000
       S3_BUCKET: recordings
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-bevoiced}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-soundbite}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       WORKER_CONCURRENCY: 1
       # Threads per job. cores ÷ workers is the rule; leave one for the app and Postgres.
@@ -90,12 +90,12 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: bevoiced
+      POSTGRES_USER: soundbite
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: bevoiced
+      POSTGRES_DB: soundbite
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bevoiced"]
+      test: ["CMD-SHELL", "pg_isready -U soundbite"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-bevoiced}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-soundbite}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
       # The browser PUTs its upload to storage.DOMAIN while sitting on DOMAIN, which is a
       # cross-origin request; without this the preflight fails and no upload ever starts.
@@ -124,7 +124,7 @@ services:
       minio: { condition: service_healthy }
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 ${S3_ACCESS_KEY_ID:-bevoiced} ${S3_SECRET_ACCESS_KEY} &&
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY_ID:-soundbite} ${S3_SECRET_ACCESS_KEY} &&
       mc mb --ignore-existing local/recordings &&
       echo 'bucket ready'
       "
@@ -150,7 +150,7 @@ services:
       # Off-box storage. R2 is the obvious choice here: egress is free, so pulling a dump back
       # down in an emergency costs nothing at the moment you least want a surprise.
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
-      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-bevoiced-backups}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-soundbite-backups}
       BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
       BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-postgres}

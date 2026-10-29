@@ -1,4 +1,4 @@
-/** Four bars, loudest in the middle: the Be Voiced mark. */
+/** Four bars, loudest in the middle: the Soundbite mark. */
 export function BrandMark({ size = 22, tone = "rail" }: { size?: number; tone?: "rail" | "accent" }) {
   const strong = tone === "rail" ? "var(--brand-strong)" : "var(--accent)";
   const soft = tone === "rail" ? "var(--brand-soft)" : "var(--accent-line)";

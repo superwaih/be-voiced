@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "apps/web", "dev"],
+      "port": 1500
+    },
+    {
+      "name": "saas",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "apps/saas", "exec", "next", "dev", "--port", "1600"],
+      "port": 1600
+    }
+  ]
+}

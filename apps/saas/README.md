@@ -1,4 +1,4 @@
-# Be Voiced
+# Soundbite
 
 Upload a recording, read what was said, ask it questions and caption it.
 
@@ -171,7 +171,7 @@ and bakes the model into the image — fetching it on a cold start multiplies th
 short job, and most jobs are short.
 
 ```bash
-docker build -t be-voiced --build-arg WHISPER_MODEL=ggml-small.en-tdrz.bin .
+docker build -t soundbite --build-arg WHISPER_MODEL=ggml-small.en-tdrz.bin .
 ```
 
 `ggml-base.en.bin` (142 MB) is quick and good for clear speech. `ggml-small.en-tdrz.bin` (465 MB)

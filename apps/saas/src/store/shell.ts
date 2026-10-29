@@ -12,7 +12,7 @@
 import { create } from "zustand";
 import { applyTheme, readTheme, saveTheme, type Theme } from "@/lib/theme";
 
-const COLLAPSE_KEY = "bevoiced.sidebarCollapsed";
+const COLLAPSE_KEY = "soundbite.sidebarCollapsed";
 
 interface ShellState {
   theme: Theme;

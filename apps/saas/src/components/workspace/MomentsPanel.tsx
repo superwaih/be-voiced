@@ -90,7 +90,7 @@ export function MomentsPanel({
         <EmptyState
           icon={<Sparkle />}
           title="Moments come after the transcript"
-          body="Once the conversation is transcribed, Be Voiced reads all of it and picks the parts worth publishing."
+          body="Once the conversation is transcribed, Soundbite reads all of it and picks the parts worth publishing."
         />
       </div>
     );

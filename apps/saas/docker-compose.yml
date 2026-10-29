@@ -13,13 +13,13 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: bevoiced
-      POSTGRES_PASSWORD: bevoiced
-      POSTGRES_DB: bevoiced
+      POSTGRES_USER: soundbite
+      POSTGRES_PASSWORD: soundbite
+      POSTGRES_DB: soundbite
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bevoiced"]
+      test: ["CMD-SHELL", "pg_isready -U soundbite"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -28,8 +28,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: bevoiced
-      MINIO_ROOT_PASSWORD: bevoiced123
+      MINIO_ROOT_USER: soundbite
+      MINIO_ROOT_PASSWORD: soundbite123
     ports: ["9000:9000", "9001:9001"]
     volumes: ["miniodata:/data"]
     healthcheck:
@@ -45,7 +45,7 @@ services:
       minio: { condition: service_healthy }
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 bevoiced bevoiced123 &&
+      mc alias set local http://minio:9000 soundbite soundbite123 &&
       mc mb --ignore-existing local/recordings &&
       echo 'bucket ready'
       "

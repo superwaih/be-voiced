@@ -24,7 +24,7 @@ export async function queue(): Promise<PgBoss> {
   if (globalForBoss.__boss) return globalForBoss.__boss;
 
   const boss = new PgBoss({
-    connectionString: process.env.DATABASE_URL ?? "postgres://bevoiced:bevoiced@localhost:5432/bevoiced",
+    connectionString: process.env.DATABASE_URL ?? "postgres://soundbite:soundbite@localhost:5432/soundbite",
     // A worker that dies mid-job should not take the job with it: unclaimed after this, it goes
     // back on the queue for someone else.
     schema: "pgboss",

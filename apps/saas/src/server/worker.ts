@@ -42,7 +42,7 @@ async function handle(message: TranscribeMessage) {
   if (!existing) return;
   if (existing.status === "done" || existing.status === "cancelled") return;
 
-  const dir = await mkdtemp(join(tmpdir(), "bevoiced-"));
+  const dir = await mkdtemp(join(tmpdir(), "soundbite-"));
   const beat = setInterval(() => {
     void setJob(jobId, { heartbeatAt: new Date() }).catch(() => undefined);
   }, HEARTBEAT_MS);
