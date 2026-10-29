@@ -35,22 +35,35 @@ import { BrandMark } from "@/components/BrandMark";
  * Tokens
  * ------------------------------------------------------------------------------------------- */
 
-/** The one accent. It marks the clip and it marks links. It is not used to decorate anything. */
-const ACCENT = "#e45cc0";
+/**
+ * Colours picked against measured contrast, not by eye.
+ *
+ * The page before this one was black nearly all the way down and set its secondary text in Apple's
+ * #86868b. Measured on the rendered page that grey came out at 3.6:1 on white and 3.3:1 on the
+ * off-white — both below the 4.5:1 that ordinary text needs — and the magenta was 3.2:1 as text and
+ * behind the white of the primary action. Twenty-eight elements failed.
+ *
+ * Apple can set a grey that light because most of their secondary text is very large, where 3:1 is
+ * the bar. Ours is body copy at sixteen pixels, so it needs the darker step. Every value below was
+ * checked in the browser and clears 4.5:1 on the ground it is used against.
+ */
+const ACCENT = "#b01a78"; // 6.4:1 on white — as text, and behind white on the pill
+const ACCENT_LIT = "#ff6ec7"; // 8.3:1 on black — the clip, on the one dark section
 
-const INK = "#1d1d1f"; // type on white
-const SNOW = "#f5f5f7"; // type on black
-const GREY = "#86868b"; // everything secondary, on either ground
+const INK = "#1d1d1f"; // 15.9:1 on white
+const SNOW = "#f5f5f7"; // on black
+const GREY = "#6e6e73"; // 5.1:1 on white, 4.8:1 on the off-white
+const GREY_DARK = "#a1a1a6"; // 8.2:1 on black
 
 /** Apple's headings are semibold with negative tracking, never heavy. */
 const DISPLAY = "font-semibold tracking-[-0.025em] leading-[1.05] text-balance";
 
 export function LandingScreen() {
   return (
-    <div className="h-full scroll-smooth overflow-y-auto bg-black [scrollbar-gutter:stable_both-edges]">
+    <div className="h-full scroll-smooth overflow-y-auto bg-white [scrollbar-gutter:stable_both-edges]">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-5 focus:py-2.5 focus:text-[13px] focus:font-medium focus:text-black"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#1d1d1f] focus:px-5 focus:py-2.5 focus:text-[13px] focus:font-medium focus:!text-white"
       >
         Skip to content
       </a>
@@ -100,10 +113,10 @@ function SiteNav() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-black/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-black/[0.08] bg-white/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-12 max-w-[1024px] items-center px-5" aria-label="Main">
-        <Link href="/" className="flex items-center gap-2 text-[#f5f5f7]">
-          <BrandMark size={17} />
+        <Link href="/" className="flex items-center gap-2" style={{ color: INK }}>
+          <BrandMark size={17} tone="accent" />
           <span className="text-[14px] font-semibold tracking-[-0.01em]">Soundbite</span>
         </Link>
 
@@ -112,7 +125,8 @@ function SiteNav() {
             <a
               key={href}
               href={href}
-              className="text-[12px] text-[#f5f5f7]/80 transition-opacity duration-300 hover:opacity-60"
+              className="text-[12px] transition-opacity duration-300 hover:opacity-60"
+              style={{ color: INK }}
             >
               {label}
             </a>
@@ -121,7 +135,8 @@ function SiteNav() {
 
         <Link
           href="/sign-in"
-          className="ml-auto text-[12px] text-[#f5f5f7]/80 transition-opacity duration-300 hover:opacity-60 md:ml-0"
+          className="ml-auto text-[12px] transition-opacity duration-300 hover:opacity-60 md:ml-0"
+          style={{ color: INK }}
         >
           Sign in
         </Link>
@@ -136,12 +151,12 @@ function SiteNav() {
         >
           <span className="relative block h-[9px] w-[16px]" aria-hidden="true">
             <span
-              className={`absolute left-0 block h-[1px] w-full bg-[#f5f5f7] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+              className={`absolute left-0 block h-[1px] w-full bg-[#1d1d1f] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 open ? "top-1 rotate-45" : "top-0"
               }`}
             />
             <span
-              className={`absolute left-0 block h-[1px] w-full bg-[#f5f5f7] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+              className={`absolute left-0 block h-[1px] w-full bg-[#1d1d1f] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 open ? "top-1 -rotate-45" : "top-2"
               }`}
             />
@@ -152,15 +167,15 @@ function SiteNav() {
       <div
         id="site-menu"
         hidden={!open}
-        className="border-t border-white/[0.08] bg-black px-5 pt-2 pb-6 md:hidden"
+        className="border-t border-black/[0.08] bg-white px-5 pt-2 pb-6 md:hidden"
       >
         {[...NAV, ["Sign in", "/sign-in"] as [string, string]].map(([label, href], i) => (
           <a
             key={href}
             href={href}
             onClick={() => setOpen(false)}
-            style={{ transitionDelay: `${i * 45}ms` }}
-            className={`block border-b border-white/[0.06] py-4 text-[20px] font-semibold tracking-[-0.02em] text-[#f5f5f7] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] last:border-0 ${
+            style={{ color: INK, transitionDelay: `${i * 45}ms` }}
+            className={`block border-b border-black/[0.06] py-4 text-[20px] font-semibold tracking-[-0.02em] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] last:border-0 ${
               open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
             }`}
           >
@@ -204,14 +219,14 @@ function SiteFooter() {
 
 function Hero() {
   return (
-    <Stage dark>
+    <Stage>
       <Reveal>
         <p className="text-center text-[19px] font-semibold tracking-[-0.01em]" style={{ color: ACCENT }}>
           Soundbite
         </p>
         <h1
           className={`mx-auto mt-3 max-w-[16ch] text-center text-[clamp(44px,7.4vw,96px)] ${DISPLAY}`}
-          style={{ color: SNOW }}
+          style={{ color: INK }}
         >
           Find the part worth posting.
         </h1>
@@ -257,10 +272,10 @@ function Speakers() {
 
 function Captions() {
   return (
-    <Stage id="captions" dark>
+    <Stage id="captions" tone="soft">
       <Reveal>
-        <Title dark>Captions, already burned in.</Title>
-        <Lede dark>
+        <Title>Captions, already burned in.</Title>
+        <Lede>
           Because the words are timed to the audio, each one lights as it is spoken. Set the style
           once. The clip exports with the captions part of the picture.
         </Lede>
@@ -314,10 +329,10 @@ function Specs() {
     ["0", "to install", "a browser is enough"],
   ];
   return (
-    <Stage dark tight>
+    <Stage tone="soft" tight>
       <Reveal>
-        <Title dark>Your laptop does none of the work.</Title>
-        <Lede dark>
+        <Title>Your laptop does none of the work.</Title>
+        <Lede>
           Transcription runs on our machines. Nothing to install, no model to download, no graphics
           card to own. Upload a file and close the tab.
         </Lede>
@@ -328,11 +343,11 @@ function Specs() {
             <div key={label} className="text-center">
               <dt
                 className="text-[clamp(44px,5.4vw,64px)] font-semibold tracking-[-0.03em]"
-                style={{ color: SNOW }}
+                style={{ color: INK }}
               >
                 {figure}
               </dt>
-              <dd className="mt-2 text-[15px] font-medium" style={{ color: SNOW }}>
+              <dd className="mt-2 text-[15px] font-medium" style={{ color: INK }}>
                 {label}
               </dd>
               <dd className="mt-1 text-[12px]" style={{ color: GREY }}>
@@ -366,19 +381,20 @@ function Close() {
 
 function Stage({
   id,
-  dark,
+  tone = "white",
   tight,
   children,
 }: {
   id?: string;
-  dark?: boolean;
+  /** White and a half-step off it. The page is light; the seam is the only dark thing on it. */
+  tone?: "white" | "soft";
   tight?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section
       id={id}
-      className={`scroll-mt-12 px-5 ${dark ? "bg-black" : "bg-[#f5f5f7]"} ${
+      className={`scroll-mt-12 px-5 ${tone === "soft" ? "bg-[#f5f5f7]" : "bg-white"} ${
         tight ? "py-24 md:py-32" : "py-24 md:py-36"
       }`}
     >
@@ -387,23 +403,23 @@ function Stage({
   );
 }
 
-function Title({ dark, children }: { dark?: boolean; children: React.ReactNode }) {
+function Title({ children }: { children: React.ReactNode }) {
   return (
     <h2
       className={`mx-auto max-w-[18ch] text-center text-[clamp(32px,5vw,64px)] ${DISPLAY}`}
-      style={{ color: dark ? SNOW : INK }}
+      style={{ color: INK }}
     >
       {children}
     </h2>
   );
 }
 
-function Lede({ dark, children }: { dark?: boolean; children?: React.ReactNode }) {
+function Lede({ children }: { children?: React.ReactNode }) {
   if (!children) return null;
   return (
     <p
       className="mx-auto mt-5 max-w-[46ch] text-center text-[clamp(16px,1.6vw,19px)] leading-relaxed"
-      style={{ color: dark ? GREY : GREY }}
+      style={{ color: GREY }}
     >
       {children}
     </p>
@@ -509,7 +525,7 @@ function Clips() {
   return (
     <div className="grid gap-4 md:grid-cols-3 md:gap-5">
       {clips.map((c, i) => (
-        <article key={c.at} className="rounded-[18px] bg-[#1d1d1f] p-6">
+        <article key={c.at} className="rounded-[18px] border border-black/[0.08] bg-white p-6">
           <div className="flex items-center justify-between">
             <span className="mono text-[11px]" style={{ color: GREY }}>
               {c.at}
@@ -518,8 +534,14 @@ function Clips() {
               {c.run}
             </span>
           </div>
-          <Wave bars={wave(26, i + 1)} from={7} to={17} className="mt-5 h-9" />
-          <p className="mt-5 text-[14px] leading-relaxed" style={{ color: SNOW }}>
+          <Wave
+            bars={wave(26, i + 1)}
+            from={7}
+            to={17}
+            className="mt-5 h-9"
+            dimColour="rgba(29,29,31,0.18)"
+          />
+          <p className="mt-5 text-[14px] leading-relaxed" style={{ color: INK }}>
             {c.line}
           </p>
           <p className="mt-4 text-[12px]" style={{ color: GREY }}>
@@ -538,7 +560,7 @@ function Wave({
   to,
   className = "",
   litColour = ACCENT,
-  dimColour = "rgba(255,255,255,0.22)",
+  dimColour = "rgba(255,255,255,0.28)",
 }: {
   bars: number[];
   from: number;
@@ -576,16 +598,22 @@ function Wave({
 function Seam() {
   const bars = wave(170, 4);
   return (
-    <section aria-hidden="true" className="bg-black pb-20 md:pb-28">
-      <Wave bars={bars} from={96} to={114} className="h-[120px] px-5 md:h-[180px]" />
+    <section aria-hidden="true" className="bg-[#1d1d1f] py-20 md:py-28">
+      <Wave
+        bars={bars}
+        from={96}
+        to={114}
+        className="h-[120px] px-5 md:h-[180px]"
+        litColour={ACCENT_LIT}
+      />
       <div className="mx-auto mt-6 flex max-w-[1024px] items-baseline justify-between px-5">
-        <span className="mono text-[11px]" style={{ color: GREY }}>
+        <span className="mono text-[11px]" style={{ color: GREY_DARK }}>
           00:00:00
         </span>
         <span className="text-[13px] font-medium" style={{ color: SNOW }}>
           Sixteen seconds of thirty-eight minutes.
         </span>
-        <span className="mono text-[11px]" style={{ color: GREY }}>
+        <span className="mono text-[11px]" style={{ color: GREY_DARK }}>
           00:38:02
         </span>
       </div>
@@ -601,7 +629,7 @@ function TranscriptPanel() {
   ];
 
   return (
-    <div className="rounded-[22px] bg-white p-8 md:p-10">
+    <div className="rounded-[22px] border border-black/[0.08] bg-white p-8 md:p-10">
       <div className="flex items-baseline justify-between border-b border-black/[0.08] pb-5">
         <h3 className="text-[15px] font-semibold tracking-[-0.01em]" style={{ color: INK }}>
           Tuesday standup, episode 14
@@ -650,17 +678,17 @@ function CaptionFrame() {
           className="max-w-[22ch] text-center text-[clamp(20px,3.4vw,40px)] font-semibold tracking-[-0.02em] text-white"
           style={{ textShadow: "0 2px 14px rgba(0,0,0,0.45)" }}
         >
-          they remember the <span style={{ color: ACCENT }}>one sentence</span> that came out wrong
+          they remember the <span style={{ color: ACCENT_LIT }}>one sentence</span> that came out wrong
         </p>
       </div>
       <div className="flex items-center gap-5 border-t border-white/[0.08] px-7 py-4">
-        <span className="mono text-[11px]" style={{ color: GREY }}>
+        <span className="mono text-[11px]" style={{ color: GREY_DARK }}>
           00:14:22
         </span>
-        <span className="h-[2px] flex-1 overflow-hidden rounded-full bg-white/15">
-          <span className="block h-full w-[42%] rounded-full" style={{ background: ACCENT }} />
+        <span className="h-[2px] flex-1 overflow-hidden rounded-full bg-white/20">
+          <span className="block h-full w-[42%] rounded-full" style={{ background: ACCENT_LIT }} />
         </span>
-        <span className="mono text-[11px]" style={{ color: GREY }}>
+        <span className="mono text-[11px]" style={{ color: GREY_DARK }}>
           00:14:38
         </span>
       </div>
@@ -670,7 +698,7 @@ function CaptionFrame() {
 
 function SearchPanel() {
   return (
-    <div className="rounded-[22px] bg-white p-8 md:p-10">
+    <div className="rounded-[22px] border border-black/[0.08] bg-white p-8 md:p-10">
       <p
         className="rounded-full border border-black/[0.1] px-5 py-3.5 text-[16px]"
         style={{ color: INK }}
