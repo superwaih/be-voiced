@@ -39,7 +39,7 @@ import { useProject } from "@/store/project";
 import { useIsDark, useShell } from "@/store/shell";
 
 const NAV: { href: string; label: string; icon: Icon; exact?: boolean }[] = [
-  { href: "/", label: "Home", icon: House, exact: true },
+  { href: "/home", label: "Home", icon: House, exact: true },
   { href: "/projects", label: "Projects", icon: SquaresFour },
   { href: "/transcripts", label: "Transcripts", icon: TextAlignLeft },
   { href: "/captions", label: "Captions", icon: ClosedCaptioning },
@@ -166,7 +166,7 @@ export function Nav() {
         )}
       >
         <div className="mb-5 flex min-h-10 items-center justify-between gap-2">
-          <Link href="/" className={cx("flex min-w-0 items-center gap-[11px] px-1.5 text-rail-ink", collapsed && "lg:px-0")}>
+          <Link href="/home" className={cx("flex min-w-0 items-center gap-[11px] px-1.5 text-rail-ink", collapsed && "lg:px-0")}>
             <BrandMark />
             <span className={cx("text-[17px] font-bold tracking-[-0.025em] whitespace-nowrap", collapsed && "lg:hidden")}>
               Soundbite

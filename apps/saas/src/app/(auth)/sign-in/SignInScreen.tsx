@@ -71,7 +71,7 @@ export function SignInScreen() {
       const body = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? "That did not work.");
       // A full navigation, so every server component re-renders knowing who this is.
-      window.location.href = "/";
+      window.location.href = "/home";
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
