@@ -123,6 +123,100 @@ touch — so a second VPS running only the `worker` service, pointed at the firs
 That is the scaling path here: not elastic, but linear and cheap. Open Postgres and MinIO to the
 second box over a private network or a WireGuard tunnel — never the public internet.
 
+## Backups
+
+`pg_dump` runs daily in its own container, verifies the dump, uploads it off the box and prunes
+what has aged out. Postgres holds every account, transcript and project document — everything a
+user would consider their work.
+
+**It does not run until you configure it.** The service starts with the stack, finds no
+destination, says so in its logs and stops. That is deliberate: a box with no backups should be
+noisy about it rather than look healthy.
+
+### Where the dumps go
+
+Not on this machine. A dump on the same disk as the database dies with it, and the reassuring list
+of files makes the loss worse, because it reads like safety until the moment it is tested. The
+script refuses the local MinIO outright for this reason.
+
+Cloudflare R2 is the natural target: egress is free, so pulling a dump back down during an
+incident costs nothing at the moment a surprise bill is least welcome. Any S3-compatible storage
+works — Backblaze B2, Contabo Object Storage, another provider's S3.
+
+Create a bucket and an API token scoped to it, then add to `.env`:
+
+```bash
+BACKUP_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+BACKUP_S3_BUCKET=bevoiced-backups
+BACKUP_S3_ACCESS_KEY_ID=<token id>
+BACKUP_S3_SECRET_ACCESS_KEY=<token secret>
+
+# Optional; these are the defaults.
+BACKUP_AT=03:17          # daily, UTC — always UTC, so clock changes cannot skip a run
+BACKUP_RETAIN_DAYS=14
+BACKUP_S3_PREFIX=postgres
+```
+
+Then start it and **prove it works now**, rather than finding out at 03:17:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d backup
+docker compose -f docker-compose.prod.yml run --rm backup /usr/local/bin/backup.sh
+```
+
+A good run ends with the size it uploaded and how many backups are held. A wrong key or a missing
+bucket fails here, in front of you, which is the entire point of running it by hand once.
+
+```bash
+docker compose -f docker-compose.prod.yml logs backup    # what it did, and when the next one is
+```
+
+### Restoring
+
+**Do this once, before you need it.** An untested restore is a belief, not a backup — and the only
+way to find out that the dump is empty, or that you backed up the wrong database, is to try.
+
+List what is held, and fetch one:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm --entrypoint sh backup -c '
+  mc alias set b "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY_ID" "$BACKUP_S3_SECRET_ACCESS_KEY" &&
+  mc ls b/$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/'
+```
+
+Restore it over the live database — this **replaces** the current contents, so stop the app and
+workers first so nothing writes mid-restore:
+
+```bash
+docker compose -f docker-compose.prod.yml stop app worker
+
+docker compose -f docker-compose.prod.yml run --rm --entrypoint sh backup -c '
+  set -e
+  mc alias set b "$BACKUP_S3_ENDPOINT" "$BACKUP_S3_ACCESS_KEY_ID" "$BACKUP_S3_SECRET_ACCESS_KEY"
+  mc cp b/$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/bevoiced-20261029T031700Z.dump /tmp/r.dump
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_restore     --host=postgres --username=bevoiced --dbname=bevoiced     --clean --if-exists --no-owner --no-privileges --single-transaction /tmp/r.dump'
+
+docker compose -f docker-compose.prod.yml start app worker
+```
+
+`--single-transaction` means a restore that fails half way leaves the database as it was rather
+than half-written. `--clean --if-exists` drops what the dump is about to replace, so restoring
+over a populated database does not collide.
+
+To rehearse without touching production, restore into a scratch database instead — same command
+with `--dbname=rehearsal` after `createdb`:
+
+```bash
+docker compose -f docker-compose.prod.yml exec postgres createdb -U bevoiced rehearsal
+```
+
+### What is not covered
+
+Roles and passwords live outside the dump (`pg_dump` is one database, not the cluster), but there
+is only one role here and the compose file creates it from `POSTGRES_PASSWORD`. Keep that value
+somewhere other than this box, or a restore has a database and no way into it.
+
+
 ## What this does not do
 
 **There is no autoscaler.** A fixed box cannot grow to meet a spike; you decide the capacity in
@@ -130,8 +224,9 @@ advance and the queue absorbs the rest. If bursts are the normal case rather tha
 workers belong somewhere that bills per second — the app can stay here and only the `worker`
 service moves.
 
-**Backups are not configured.** Postgres holds the accounts, the recordings and the transcripts.
-`pg_dump` on a cron to object storage, off this box, before you have anything worth losing.
+**Media is not backed up.** The database is (below), but the recordings themselves are not. They
+are the one thing here that cannot be regenerated, and they are also the expensive thing to copy.
+`mc mirror` to the same bucket is the cheap answer when you decide the storage bill is worth it.
 
 **Storage grows forever.** Every upload is kept. Decide a retention window and enforce it, or the
 disk fills.

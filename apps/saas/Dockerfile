@@ -110,3 +110,30 @@ COPY --from=build   /app/package.json          ./package.json
 # the same cores makes both slower rather than the pair faster. Run more workers instead.
 ENV WORKER_CONCURRENCY=1
 CMD ["node", "dist/server/worker.js"]
+
+# ---- backups ---------------------------------------------------------------------------------
+# pg_dump on a schedule, to storage that is not this machine.
+#
+# Built on the Postgres image so pg_dump matches the server exactly — a dump taken by an older
+# pg_dump than the server it reads is refused outright, which is a tedious way to find out that
+# two version numbers drifted.
+FROM postgres:17-alpine AS backup
+
+# mc is copied from the official image rather than downloaded, so there is no release string to
+# guess and no network fetch in the build. `mc --version` is here to make a wrong path fail the
+# build loudly now, instead of at 03:17 on a night when the database is needed.
+COPY --from=minio/mc:latest /usr/bin/mc /usr/local/bin/mc
+RUN mc --version
+
+COPY scripts/backup.sh          /usr/local/bin/backup.sh
+COPY scripts/backup-schedule.sh /usr/local/bin/backup-schedule.sh
+RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/backup-schedule.sh
+
+# Daily, UTC, keeping a fortnight. Not on the hour: every cron on every box fires at 03:00, and
+# shared storage is more contended then than a minute either side.
+ENV BACKUP_AT=03:17 \
+    BACKUP_RETAIN_DAYS=14 \
+    BACKUP_S3_PREFIX=postgres
+
+ENTRYPOINT []
+CMD ["/usr/local/bin/backup-schedule.sh"]

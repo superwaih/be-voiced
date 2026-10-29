@@ -129,6 +129,37 @@ services:
       echo 'bucket ready'
       "
 
+  # pg_dump on a schedule, to storage that is not this machine.
+  #
+  # Starts with the rest of the stack but stays stopped until BACKUP_S3_ENDPOINT is set, saying so
+  # in its logs — so a box with no backup configured is loud rather than quietly unprotected.
+  # Run one by hand to prove the credentials work:
+  #
+  #   docker compose -f docker-compose.prod.yml run --rm backup /usr/local/bin/backup.sh
+  backup:
+    build:
+      context: .
+      target: backup
+    # exit 0 means "not configured", and must not be retried in a loop; a real crash is non-zero
+    # and is worth restarting.
+    restart: on-failure
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Passed only so the script can refuse to back up into the same place the media lives.
+      S3_ENDPOINT: http://minio:9000
+      # Off-box storage. R2 is the obvious choice here: egress is free, so pulling a dump back
+      # down in an emergency costs nothing at the moment you least want a surprise.
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-bevoiced-backups}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-postgres}
+      BACKUP_AT: ${BACKUP_AT:-03:17}
+      BACKUP_RETAIN_DAYS: ${BACKUP_RETAIN_DAYS:-14}
+      BACKUP_ON_START: ${BACKUP_ON_START:-false}
+    depends_on:
+      postgres: { condition: service_healthy }
+
 volumes:
   pgdata:
   miniodata:
