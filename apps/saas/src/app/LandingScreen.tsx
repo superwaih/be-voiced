@@ -44,23 +44,40 @@ import { BrandMark } from "@/components/BrandMark";
 /** One curve for the whole page: heavy at the start, settling rather than stopping. */
 const SPRING = "ease-[cubic-bezier(0.32,0.72,0,1)]";
 
-/** Wide, soft and tinted with the brand's plum — never black at low opacity. */
-const LIFT = "shadow-[0_2px_4px_rgba(50,11,53,0.04),0_28px_70px_-28px_rgba(50,11,53,0.22)]";
-const LIFT_SOFT = "shadow-[0_1px_3px_rgba(50,11,53,0.04),0_18px_44px_-24px_rgba(50,11,53,0.16)]";
+/**
+ * The palette, bright on purpose.
+ *
+ * The deep plum the app is built from is a fine interface colour and a dull page: at the size a
+ * landing page uses it, it reads as brown-black. These are its saturated cousins — a fuchsia that
+ * carries the brand's hue at full strength, a cyan far enough away to be a real second voice, and
+ * an amber to keep the two from reading as a cold gradient.
+ *
+ * The spectrum runs warm to cool rather than the purple-into-blue that marks a generated page, and
+ * it means something here: it is the colour of a waveform across its own length.
+ */
+const FUCHSIA = "#e040c8";
+const VIOLET = "#9b4dff";
+const CYAN = "#22d3ee";
+const AMBER = "#ffb020";
+
+/** Wide, soft, and carrying the hue of what sits above it — never black at low opacity. */
+const LIFT = "shadow-[0_2px_6px_rgba(120,20,110,0.06),0_34px_80px_-30px_rgba(120,20,110,0.30)]";
+const LIFT_SOFT = "shadow-[0_1px_3px_rgba(120,20,110,0.05),0_18px_44px_-24px_rgba(120,20,110,0.20)]";
 
 export function LandingScreen() {
   return (
-    <div className="sb-grain h-full scroll-smooth overflow-y-auto bg-[#f4f3f5] text-[#1a1420] [scrollbar-gutter:stable_both-edges]">
+    <div className="sb-grain relative h-full scroll-smooth overflow-y-auto bg-[#fbf7fd] text-[#1a1420] [scrollbar-gutter:stable_both-edges]">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#320b35] focus:px-5 focus:py-2.5 focus:text-[13px] focus:font-semibold focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-[#1a1420] focus:px-5 focus:py-2.5 focus:text-[13px] focus:font-semibold focus:text-white"
       >
         Skip to content
       </a>
 
+      <HeroGlow />
       <SiteNav />
 
-      <main id="main">
+      <main id="main" className="relative z-[1]">
         <Hero />
         <Speakers />
         <Seam />
@@ -78,6 +95,27 @@ export function LandingScreen() {
 /* ---------------------------------------------------------------------------------------------
  * Chrome
  * ------------------------------------------------------------------------------------------- */
+
+/**
+ * Two mesh blooms under the whole page.
+ *
+ * Fixed and inert, so the blur is painted once instead of on every scrolled frame, and kept at a
+ * low opacity: they are meant to tint the ground, not to glow at anyone.
+ */
+function HeroGlow() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute -top-[22rem] -left-[10rem] size-[52rem] rounded-full opacity-[0.22] blur-[130px]"
+        style={{ background: `radial-gradient(circle, ${FUCHSIA}, transparent 66%)` }}
+      />
+      <div
+        className="absolute -top-[14rem] right-[-16rem] size-[46rem] rounded-full opacity-[0.20] blur-[130px]"
+        style={{ background: `radial-gradient(circle, ${CYAN}, transparent 68%)` }}
+      />
+    </div>
+  );
+}
 
 function SiteNav() {
   const [open, setOpen] = useState(false);
@@ -105,7 +143,7 @@ function SiteNav() {
 
         <Link
           href="/sign-in"
-          className={`ml-auto shrink-0 rounded-full bg-[#320b35] px-5 py-2.5 text-[13.5px] font-semibold text-white transition-all duration-700 ${SPRING} hover:bg-[#4a1a4e] focus-visible:outline-2 focus-visible:outline-[#98559d] focus-visible:outline-offset-2 active:scale-[0.97] md:ml-0`}
+          className={`ml-auto shrink-0 rounded-full bg-[#1a1420] px-5 py-2.5 text-[13.5px] font-semibold text-white transition-all duration-700 ${SPRING} hover:bg-[#000] focus-visible:outline-2 focus-visible:outline-[#e040c8] focus-visible:outline-offset-2 active:scale-[0.97] md:ml-0`}
         >
           Sign in
         </Link>
@@ -139,7 +177,7 @@ function MenuButton({ open, onToggle }: { open: boolean; onToggle: () => void })
       aria-expanded={open}
       aria-controls="site-menu"
       aria-label={open ? "Close the menu" : "Open the menu"}
-      className={`relative grid size-10 shrink-0 place-items-center rounded-full border border-[#1a1420]/[0.08] bg-white transition-all duration-700 ${SPRING} focus-visible:outline-2 focus-visible:outline-[#98559d] focus-visible:outline-offset-2 active:scale-[0.94] md:hidden`}
+      className={`relative grid size-10 shrink-0 place-items-center rounded-full border border-[#1a1420]/[0.08] bg-white transition-all duration-700 ${SPRING} focus-visible:outline-2 focus-visible:outline-[#e040c8] focus-visible:outline-offset-2 active:scale-[0.94] md:hidden`}
     >
       <span className="relative block h-3 w-[18px]" aria-hidden="true">
         <span
@@ -200,7 +238,7 @@ function MenuOverlay({ open, onClose }: { open: boolean; onClose: () => void }) 
           href="/sign-in"
           onClick={onClose}
           style={{ transitionDelay: open ? `${120 + LINKS.length * 70}ms` : "0ms" }}
-          className={`mt-8 w-max rounded-full bg-[#320b35] px-7 py-3.5 text-[15px] font-semibold text-white transition-all duration-700 ${SPRING} ${
+          className={`mt-8 w-max rounded-full bg-[#e040c8] px-7 py-3.5 text-[15px] font-semibold text-white transition-all duration-700 ${SPRING} ${
             open ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
           }`}
         >
@@ -261,7 +299,14 @@ function Hero() {
               Transcripts · clips · captions
             </span>
             <h1 className="mt-7 max-w-[11ch] text-[clamp(44px,7vw,88px)] leading-[0.95] font-bold tracking-[-0.05em] text-balance">
-              Find the part worth posting.
+              Find the{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: `linear-gradient(100deg, ${FUCHSIA}, ${VIOLET} 55%, ${CYAN})` }}
+              >
+                part worth
+              </span>{" "}
+              posting.
             </h1>
             <p className="mt-7 max-w-[44ch] text-[19px] leading-relaxed text-pretty text-[#1a1420]/55">
               Upload a recording. Soundbite writes it down, marks who spoke, and cuts the moment you
@@ -301,7 +346,7 @@ const CLIPS = [
     at: "00:14:22",
     run: "16s",
     who: "Tomas",
-    dot: "#4fa39d",
+    dot: CYAN,
     line: "They remember the one sentence that came out wrong.",
     place: "md:absolute md:top-0 md:right-0 md:z-[1] md:w-[318px] md:rotate-[3deg]",
   },
@@ -309,7 +354,7 @@ const CLIPS = [
     at: "00:31:08",
     run: "22s",
     who: "Mara",
-    dot: "#98559d",
+    dot: FUCHSIA,
     line: "We stopped planning the episode. We plan the clip now.",
     place: "md:absolute md:top-[196px] md:right-[74px] md:z-[2] md:w-[318px] md:-rotate-[2deg]",
   },
@@ -317,7 +362,7 @@ const CLIPS = [
     at: "00:47:51",
     run: "11s",
     who: "Tomas",
-    dot: "#4fa39d",
+    dot: CYAN,
     line: "Nobody plays a two-hour file. They play your forty seconds.",
     place: "md:absolute md:top-[392px] md:right-[18px] md:z-[3] md:w-[318px] md:rotate-[1deg]",
   },
@@ -334,7 +379,8 @@ function Cascade() {
             <div className="rounded-[calc(2rem-0.5rem)] bg-[#faf9fb] p-6">
               <div className="flex items-center justify-between">
                 <span className="mono text-[11px] text-[#1a1420]/40">{c.at}</span>
-                <span className="rounded-full bg-[#320b35] px-2.5 py-1 text-[11px] font-semibold text-white">
+                <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+                  style={{ background: FUCHSIA }}>
                   {c.run}
                 </span>
               </div>
@@ -450,7 +496,7 @@ function Server() {
     <Band tone="ink">
       <div className="grid items-end gap-12 md:grid-cols-12 md:gap-10">
         <Reveal className="md:col-span-6">
-            <span className="inline-grid size-14 place-items-center rounded-2xl bg-white/10 text-[#e7cbe8] [&_svg]:size-[26px]">
+            <span className="inline-grid size-14 place-items-center rounded-2xl bg-white/10 text-[#ffb020] [&_svg]:size-[26px]">
               <Lightning weight="light" />
             </span>
             <h2 className="mt-7 max-w-[13ch] text-[clamp(38px,5.4vw,68px)] leading-[0.98] font-bold tracking-[-0.05em] text-balance text-white">
@@ -529,7 +575,7 @@ function SectionHead({
     <div className={centred ? "flex flex-col items-center" : undefined}>
       <span
         className={`inline-grid size-14 place-items-center rounded-2xl [&_svg]:size-[26px] ${
-          onDark ? "bg-white/10 text-[#e7cbe8]" : "bg-[#320b35]/[0.07] text-[#5c2961]"
+          onDark ? "bg-white/10 text-[#ffb020]" : "bg-[#e040c8]/[0.12] text-[#b01f9c]"
         }`}
       >
         {icon}
@@ -577,10 +623,26 @@ const SEAM = Array.from({ length: 150 }, (_, i) => {
 const SEAM_FROM = 84;
 const SEAM_TO = 101;
 
+/** Fuchsia through violet to cyan and out to amber, sampled across the seam's length. */
+const SPECTRUM = [FUCHSIA, VIOLET, CYAN, AMBER];
+
+function hueAt(t: number) {
+  const span = 1 / (SPECTRUM.length - 1);
+  const i = Math.min(SPECTRUM.length - 2, Math.floor(t / span));
+  const k = (t - i * span) / span;
+  const [a, b] = [SPECTRUM[i], SPECTRUM[i + 1]];
+  const mix = (x: string, y: string, o: number) => {
+    const n = (c: string, at: number) => parseInt(c.slice(1 + at * 2, 3 + at * 2), 16);
+    const ch = [0, 1, 2].map((at) => Math.round(n(x, at) + (n(y, at) - n(x, at)) * o));
+    return `rgb(${ch.join(",")})`;
+  };
+  return mix(a, b, k);
+}
+
 function Seam() {
   return (
-    <section aria-hidden="true" className="bg-[#2a0a2d] pb-20 md:pb-28">
-      <div className="flex h-[140px] items-center gap-[3px] px-4 md:h-[200px] md:px-8">
+    <section aria-hidden="true" className="bg-[#1b0732] pb-20 md:pb-28">
+      <div className="flex h-[150px] items-center gap-[3px] px-4 md:h-[230px] md:px-8">
         {SEAM.map((h, i) => {
           const lit = i >= SEAM_FROM && i <= SEAM_TO;
           return (
@@ -588,8 +650,10 @@ function Seam() {
               key={i}
               className="min-w-0 flex-1 rounded-full"
               style={{
-                height: `${Math.round(h * (lit ? 100 : 72))}%`,
-                background: lit ? "#e7cbe8" : "rgba(255,255,255,0.13)",
+                height: `${Math.round(h * (lit ? 100 : 62))}%`,
+                background: hueAt(i / (SEAM.length - 1)),
+                opacity: lit ? 1 : 0.26,
+                boxShadow: lit ? `0 0 26px ${hueAt(i / (SEAM.length - 1))}` : undefined,
               }}
             />
           );
@@ -597,11 +661,11 @@ function Seam() {
       </div>
 
       <div className="mx-auto flex max-w-[1180px] items-baseline justify-between px-4 md:px-8">
-        <span className="mono text-[11px] text-white/30">00:00:00</span>
-        <span className="text-[13px] font-medium text-[#e7cbe8]">
+        <span className="mono text-[11px] text-white/35">00:00:00</span>
+        <span className="text-[14px] font-semibold text-white">
           sixteen seconds of thirty-eight minutes
         </span>
-        <span className="mono text-[11px] text-white/30">00:38:02</span>
+        <span className="mono text-[11px] text-white/35">00:38:02</span>
       </div>
     </section>
   );
@@ -625,9 +689,9 @@ function Band({
   // different from the one above it.
   const skin = {
     plain: "bg-transparent",
-    tint: "bg-[#eae2ec]",
-    plum: "bg-[#2a0a2d]",
-    ink: "bg-[#120410]",
+    tint: "bg-[#e6f7fb]",
+    plum: "bg-[#1b0732]",
+    ink: "bg-[#12041f]",
   }[tone];
 
   return (
@@ -644,7 +708,8 @@ function CallToAction({ href, children }: { href: string; children: React.ReactN
   return (
     <Link
       href={href}
-      className={`group flex h-14 w-max items-center gap-5 rounded-full bg-[#320b35] pr-1.5 pl-7 text-[14.5px] font-semibold text-white transition-all duration-700 ${SPRING} hover:bg-[#4a1a4e] focus-visible:outline-2 focus-visible:outline-[#98559d] focus-visible:outline-offset-2 active:scale-[0.98]`}
+      style={{ backgroundImage: `linear-gradient(100deg, ${FUCHSIA}, ${VIOLET} 70%, ${CYAN})` }}
+      className={`group flex h-14 w-max items-center gap-5 rounded-full pr-1.5 pl-7 text-[14.5px] font-semibold text-white shadow-[0_14px_38px_-10px_rgba(224,64,200,0.6)] transition-all duration-700 ${SPRING} hover:brightness-110 focus-visible:outline-2 focus-visible:outline-[#e040c8] focus-visible:outline-offset-2 active:scale-[0.98]`}
     >
       {children}
       <span
@@ -724,7 +789,7 @@ function MiniWave({ seed }: { seed: number }) {
           className="min-w-0 flex-1 rounded-full"
           style={{
             height: `${h}px`,
-            background: i > 4 && i < 14 ? "#98559d" : "rgba(26,20,32,0.14)",
+            background: i > 4 && i < 14 ? hueAt(i / bars.length) : "rgba(26,20,32,0.12)",
           }}
         />
       ))}
@@ -734,9 +799,9 @@ function MiniWave({ seed }: { seed: number }) {
 
 function TranscriptCard() {
   const lines = [
-    { who: "Mara", dot: "#98559d", at: "14:09", text: "We cut the first twenty minutes entirely, because the room was still filling up." },
-    { who: "Tomas", dot: "#4fa39d", at: "14:22", text: "Right, and that is the part everyone quotes back at us afterwards.", lit: true },
-    { who: "Mara", dot: "#98559d", at: "14:38", text: "Which is the argument for cutting it, not for recording less." },
+    { who: "Mara", dot: FUCHSIA, at: "14:09", text: "We cut the first twenty minutes entirely, because the room was still filling up." },
+    { who: "Tomas", dot: CYAN, at: "14:22", text: "Right, and that is the part everyone quotes back at us afterwards.", lit: true },
+    { who: "Mara", dot: FUCHSIA, at: "14:38", text: "Which is the argument for cutting it, not for recording less." },
   ];
   return (
     <div className={`${LIFT} rounded-[2rem] border border-[#1a1420]/[0.06] bg-white p-2`}>
@@ -779,7 +844,7 @@ function CaptionCard() {
           <div className="flex h-full items-end justify-center p-7">
             <p className="max-w-[26ch] text-center text-[clamp(16px,2.2vw,22px)] leading-snug font-bold tracking-[-0.02em] text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]">
               they remember the{" "}
-              <span className="rounded-[6px] bg-[#98559d] px-1.5 py-0.5 text-white">one sentence</span>{" "}
+              <span className="rounded-[6px] bg-[#e040c8] px-1.5 py-0.5 text-white">one sentence</span>{" "}
               that came out wrong
             </p>
           </div>
@@ -801,12 +866,12 @@ function AskCard() {
   return (
     <div className={`${LIFT} rounded-[2rem] border border-[#1a1420]/[0.06] bg-white p-2`}>
       <div className="rounded-[calc(2rem-0.5rem)] bg-[#faf9fb] p-7">
-        <p className="ml-auto w-max max-w-[80%] rounded-[1.25rem] rounded-br-md bg-[#320b35] px-4 py-3 text-[14px] leading-relaxed text-white">
+        <p className="ml-auto w-max max-w-[80%] rounded-[1.25rem] rounded-br-md bg-[#9b4dff] px-4 py-3 text-[14px] leading-relaxed text-white">
           What did we decide about the intro?
         </p>
 
         <div className="mt-5 flex items-start gap-3">
-          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#320b35]/[0.07] text-[#5c2961] [&_svg]:size-[15px]">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#e040c8]/[0.12] text-[#b01f9c] [&_svg]:size-[15px]">
             <Waveform weight="light" />
           </span>
           <div className="min-w-0">
