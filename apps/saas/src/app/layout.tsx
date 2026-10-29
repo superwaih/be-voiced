@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -12,6 +12,19 @@ const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-plex-mono",
+  display: "swap",
+});
+
+/**
+ * The display face, used only by the public page.
+ *
+ * Fraunces is a high-contrast variable serif with real character in its fitting — the thing a
+ * geometric sans cannot give a headline. The app keeps Manrope; this is loaded for the one page
+ * that is read rather than worked in.
+ */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -54,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className={`${manrope.variable} ${plexMono.variable} font-sans`}>{children}</body>
+      <body className={`${manrope.variable} ${plexMono.variable} ${fraunces.variable} font-sans`}>{children}</body>
     </html>
   );
 }
